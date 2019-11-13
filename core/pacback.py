@@ -1,35 +1,28 @@
 #! /usr/bin/python
 #### A utility for marking and restoring stable arch packages 
-## Version 0.2
+## Version 0.3
 from python_scripts import *
 import re, tqdm #, pyinquirer
 
 def create_restore_point(rp_num, dir_list='nil'):
     rp_path = '/usr/app/pacback/restore-points/rp' + str(rp_num)
     print('Retrieving Current Stable Packages...')
-    os.system("sudo pacman -Q | sed -e 's/ /-/g' > " + rp_path + '.inv')
+    os.system("pacman -Q | sed -e 's/ /-/g' > " + rp_path + '.inv')
     packages = read_list(rp_path + '.inv')
     print('Scanning File System...')
-    fs_list = set(set(search_fs('/var/cache/pacman')) | set(search_fs('~/.cache')))
-    ### Print Len's
-    print('Files Found : ' + str(len(fs_list)))
+    fs_list = set(search_fs('/var/cache/pacman', 'set') | search_fs('~/.cache', 'set'))
     
-    ### Build Match Package Function 
-    def match_pkg(pkg):
-        try: n = re.compile(pkg, re.IGNORECASE) 
-        except: return
-        for f in tqdm.tqdm(fs_list, desc='Searching for ' + pkg):
-            if re.findall(n, f.lower()):
-                found_pkgs.add(f)
-    
-    ### For Loop Over All Packages
+    ### Loop Over Files Searching for Pkg's
     found_pkgs = set()
-    for pkg in tqdm.tqdm(packages, desc='Scanning for ' + str(len(packages)) + ' Packages in ' + str(len(fs_list)) + ' Files'):
-        match_pkg(pkg)
+    packages = list(re.escape(pkg) for pkg in packages)
+    bulk_search = ('|'.join(packages))
+    for f in tqdm.tqdm(fs_list, desc='Bulk Scanning for ' + str(len(packages)) + ' Packages in ' + str(len(fs_list)) + ' Files'):
+        if re.findall(bulk_search, f.lower()):
+            found_pkgs.add(f)
    
     ### Add packages to tar
     with tarfile.open(rp_path + '.tar', 'w') as tar:
-        for f in tqdm.tqdm(found_pkgs, desc='Adding Packages to Restore Archive'):
+        for f in tqdm.tqdm(found_pkgs, desc='Adding Found Packages to Restore Archive'):
             tar.add(f, '/pac_cache/' + os.path.basename(f))
 
     ### Add Any Additional Dirs to Backup
@@ -42,7 +35,7 @@ def create_restore_point(rp_num, dir_list='nil'):
                 for f in tqdm.tqdm(cfs_list, desc='Adding ' + dir + ' to Restore Archive'):
                     tar.add(f)
 
-    print('Restore Point Sucessfully Generated!')
+    print('Restore Point ' + str(rp_num) + ' Sucessfully Created!')
 
 
 custom_list = ['~/.config', '~/.ssh']
