@@ -1,24 +1,23 @@
 #! /usr/bin/env python3
 #### A utility for marking and restoring stable arch packages
-## Version 0.7
+version = '1.0.0'
 from python_scripts import *
-import re, tqdm #, pyinquirer
+import re, tqdm, argparse #, pyinquirer
 
-base_dir = os.path.dirname(os.path.realpath(__file__))[:-5]
 #######################
 ### Restore Points
 ###################
 
-def create_restore_point(rp_num, dir_list='nil'):
+def create_restore_point(rp_num, dir_list):
     ### Get Current Pkg List and Scan the File System
-    rp_path = base_dir + '/restore-points/rp' + str(rp_num)
+    rp_path = base_dir + '/restore-points/rp' + str(rp_num).zfill(2)
     print('Retrieving Current Stable Packages...')
-    os.system("pacman -Q | sed -e 's/ /-/g' > " + rp_path + '.inv')
-    packages = read_list(rp_path + '.inv')
-    fs_list = set(search_fs('/var/cache/pacman', 'set') | search_fs('~/.cache', 'set'))
+    os.system("pacman -Q | sed -e 's/ /-/g' > " + rp_path + '.meta')
+    packages = read_list(rp_path + '.meta')
+    cache_list = search_fs('~/.cache', 'set')
+    fs_list = set(search_fs('/var/cache/pacman', 'set') | {f for f in cache_list if f.endswith(".pkg.tar.xz")})
 
     ### Each Pkg Name Needs to be Escaped (like c++)
-    packages = read_list(rp_path + '.inv')
     re_pkgs = list(re.escape(pkg) for pkg in packages)
     bulk_search = ('|'.join(re_pkgs))
     
@@ -34,27 +33,53 @@ def create_restore_point(rp_num, dir_list='nil'):
             tar.add(f, '/pac_cache/' + os.path.basename(f))
 
     ### Add Any Additional Dirs to RP
-    if dir_list is 'nil':
+    if len(dir_list) == 0:
         pass
     else:
-        for dir in dir_list:
-            cfs_list = search_fs(dir)
-            with tarfile.open(rp_path + '.tar', 'a') as tar:
-                for f in tqdm.tqdm(cfs_list, desc='Adding ' + dir + ' to Restore Point'):
-                    tar.add(f)
+        files = set()
+        for path in dir_list:
+            l = search_fs(path, 'set')
+            for x in l:
+                files.add(x)
+        
+        with tarfile.open(rp_path + '.tar', 'a') as tar:
+            for f in tqdm.tqdm(files, desc='Adding Files to Restore Point'):
+                tar.add(f)
         
         ### Compress Restore Point with Pigz if Larger Than 1GB
-        if sum(set(os.path.getsize(dir) for dir in dir_list)) > 1073741824:
+        dir_gb = sum({os.path.getsize(path) for path in files})
+        if dir_gb > 1073741824:
             print('Compressing Restore Point...')
             os.system('pigz ' + rp_path + '.tar -f')
 
-    ### Finish
-    print('Restore Point #' + str(rp_num) + ' Sucessfully Created!')
+    ### Export Meta Data File
+    import datetime as dt
+    meta_list = ['====== Pacback RP #'+ str(rp_num).zfill(2) +' ======',
+                 'Packages Installed: ' + str(len(packages)),
+                 'Packages in RP: ' + str(len(found_pkgs)),
+                 'Date Created: ' + dt.datetime.now().strftime("%Y/%m/%d"),
+                 'Pacback Version: ' + version,
+                 '',]
+    if len(dir_list) == 0:
+        pass
+    else:
+        meta_list.append('========= Dir List =========')
+        meta_list.append('File Count: '+ str(len(files)))
+        meta_list.append('Total GB: '+ str(round(dir_gb/1073741824, 3)))
+        for dir in dir_list:
+            meta_list.append(dir)
+        meta_list.append('')
+
+    meta_list.append('======= Pacman List ========')
+    for pkg in packages:
+        meta_list.append(pkg)
+    export_list(rp_path + '.meta', meta_list)
+    print('Restore Point #' + str(rp_num).zfill(2) + ' Successfully Created!')
 
 ###############
 
 def rollback_to_rp(rp_num):
-    rp_path = base_dir + '/restore-points/rp' + str(rp_num)
+    rp_path = base_dir + '/restore-points/rp' + str(rp_num).zfill(2)
     
     ### Decompress Restore Point with Pigz
     if os.path.exists(rp_path + '.tar.gz'):
@@ -73,7 +98,7 @@ def rollback_to_rp(rp_num):
         return print('Restore Point #' + rp_num + ' Was NOT FOUND!')
 
     ### Install Restore Point Packages
-    os.system('sudo pacman -U ' + rp_path + '/pac_cache/* --needed')
+    os.system('sudo pacman -U ' + str(rp_path).zfill(2) + '/pac_cache/* --needed')
     shutil.rmtree(rp_path + '/pac_cache')
     
     ### Check If There Are Any Files to Diff
@@ -82,7 +107,7 @@ def rollback_to_rp(rp_num):
         return print('Rollback to Restore Point #' + rp_num + ' Complete!')
     diff_yn = yn_frame('Do You Want to Checksum Diff Restore Point Files Against Your Current File System?')
     if diff_yn == False:
-        print('Skipping Diff! Restored Files are Now Availble in: ' + rp_path)
+        print('Skipping Diff! Restored Files are Now Available in: ' + rp_path)
 
     ### Diff Files Unpacked From Restore Point
     elif diff_yn == True:
@@ -121,7 +146,7 @@ def rollback_to_date(date):
     ### Backup Mirrorlist
     if len(read_list('/etc/pacman.d/mirrorlist')) > 1:
         os.system('sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.pacback')
-    os.system("echo 'Server=https://archive.archlinux.org/repos/" + date + "/$repo/os/$arch' | sudo tee /etc/pacman.d/mirrorlist")
+    os.system("echo 'Server=https://archive.archlinux.org/repos/" + date + "/$repo/os/$arch' | sudo tee /etc/pacman.d/mirrorlist >/dev/null")
     ### Run Pacman Update
     os.system('sudo pacman -Syyuu') 
     
@@ -130,8 +155,12 @@ def rollback_to_date(date):
 def unlock_rollback():
     ### Check if mirrorlist is locked
     if len(read_list('/etc/pacman.d/mirrorlist')) == 1:
-        if not os.path.exists('/etc/pacman.d/mirrolist.pacback'):
-            os.system("curl -s 'https://www.archlinux.org/mirrorlist/?country=US&protocol=https&use_mirror_status=on' | sed -e 's/^#Server/Server/' -e '/^#/d' | sudo tee /etc/pacman.d/mirrorlist.pacback")
+        if os.path.exists('/etc/pacman.d/mirrolist.pacback'):
+            list_fetch = yn_frame('Pacback Can\'t Find Your Backup Mirrorlist! Do You Want to Fetch a New US HTTPS Mirrorlist?')
+            if list_fetch == True:
+                os.system("curl -s 'https://www.archlinux.org/mirrorlist/?country=US&protocol=https&use_mirror_status=on' | sed -e 's/^#Server/Server/' -e '/^#/d' | sudo tee /etc/pacman.d/mirrorlist.pacback >/dev/null")
+            else:
+                sys.exit('Critical Error! Please Manually Replace Your Mirrorlist!')
         os.system('sudo cp /etc/pacman.d/mirrorlist.pacback /etc/pacman.d/mirrorlist')
     else:
         return print('Pacback Does NOT Have an Active Date Lock!')
@@ -146,11 +175,35 @@ def unlock_rollback():
 #######################
 ### Parse Args
 ###################
+base_dir = os.path.dirname(os.path.realpath(__file__))[:-5]
 
 parser = argparse.ArgumentParser(description="A reliable rollback utility for marking and restoring custom save points in Arch Linux.")
-parser.add_argument("-r", "--rollback", metavar=('INT'), help="Rollback to a previously generated restore point. Takes a restore point # as an argument.")
-parser.add_argument("-g", "--gen_rp", metavar=('INT'), help="Generate a pacback restore point. Takes a restore point # as an argument.")
-parser.add_argument("-d", "--dir", metavar=('/PATH /PATH /PATH'), help="Add any custom directories to your restore point during --gen_rp.")
-parser.add_argument("-rd", "--rollback_date", metavar=('YYYY/MM/DD'), help="Set pacman to use an Arch Linux Archive URL. Takes a Date in YYYY/MM/DD format as an argument.")
-parser.add_argument("-ur", "--unlock_rollback", help="Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.")
+parser.add_argument("-rb", "--rollback", metavar=('RP# or YYYY/MM/DD'), help="Rollback to a previously generated restore point or to a date.")
+parser.add_argument("-c", "--create_rp", metavar=('INT'), help="Generate a pacback restore point. Takes a restore point # as an argument.")
+parser.add_argument("-d", "--add_dir", nargs='*', metavar=('/PATH'), help="Add any custom directories to your restore point during --gen_rp.")
+parser.add_argument("-ur", "--unlock_rollback", action='store_true', help="Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.")
+args = parser.parse_args()
 
+if args.rollback:
+    if re.findall(r'^([1-9]|0[1-9]|[1-9][0-9])$', args.rollback):
+        rollback_to_rp(args.rollback)
+    elif re.findall(r'^(?:[0-9]{2})?[0-9]{2}/[0-3]?[0-9]/(?:[0-9]{2})?[0-9]{2}$', args.rollback):
+        rollback_to_date(args.rollback)
+    else:
+        print('No Usable Argument! Rollback Arg Must be a Restore Point # or a Date.')
+
+elif args.create_rp:
+    if re.findall(r'^([1-9]|0[1-9]|[1-9][0-9])$', args.create_rp):
+        if args.add_dir:
+            create_restore_point(args.create_rp, args.add_dir)
+        else:
+            create_restore_point(args.create_rp, dir_list=list())
+
+    else:
+        print('No Usable Argument! Rollback # Must be an INT.')
+
+elif args.unlock_rollback:
+    unlock_rollback()
+    
+else:
+    print('No Usable Argument Given!')
