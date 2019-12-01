@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 #### A utility for marking and restoring stable arch packages
-version = '1.1.2'
+version = '1.2.0'
 from python_scripts import *
 import re, tqdm, argparse #, pyinquirer
 
@@ -12,74 +12,84 @@ def prChanged(text): print("\u001b[35m{}\033[00m" .format(text))
 def prRemoved(text): print("\033[31m{}\033[00m" .format(text))
 def prAdded(text): print("\033[94m{}\033[00m" .format(text))
 
-#######################
-### Create Restore Point
-###################
-def create_restore_point(rp_num, dir_list):
+#<#><#><#><#><#><#>#<#>#<#
+#+# Create Restore Point
+#<#><#><#><#><#><#>#<#>#<#
+
+def create_restore_point(rp_num, rp_full, dir_list):
     rp_path = base_dir + '/restore-points/rp' + str(rp_num).zfill(2)
-    rp_files = set()
-    found_pkgs = set()
+    if os.path.exists(rp_path + '.tar') or os.path.exists(rp_path + '.tar.gz') or os.path.exists(rp_path + '.meta'):
+        if yn_frame('Restore Point #' + str(rp_num).zfill(2) + ' Already Exists! Do You Want to Overwrite It?') == True:
+            rm_file(rp_path + '.tar', sudo=True)
+            rm_file(rp_path + '.tar.gz', sudo=True)
+            rm_file(rp_path + '.meta', sudo=True)
 
     ###################################
     ### Find Pkgs for Restore Point ###
     ###################################
-    print('Retrieving Current Stable Packages...')
-    ### Get Current Pkg List and Scan the File System
-    os.system("pacman -Q | sed -e 's/ /-/g' > /tmp/pacback_sys.meta")
-    packages = read_list('/tmp/pacback_sys.meta')
-    os.system("pacman -Q > /tmp/pacback_sys.meta")
-    cache_list = search_fs('~/.cache', 'set')
-    fs_list = set(search_fs('/var/cache/pacman', 'set') | {f for f in cache_list if f.endswith(".pkg.tar.xz")})
+    if rp_full == True:
+        rp_files = set()
+        found_pkgs = set()
 
-    ### Loop Over Files Searching for Pkgs
-    prWorking('Bulk Scanning for ' + str(len(packages)) + ' Packages...')
-    bulk_search = ('|'.join(list(re.escape(pkg) for pkg in packages))) 
-    for f in fs_list:
-        if re.findall(bulk_search, f.lower()):
-            found_pkgs.add(f + '<>/pac_cache/' + os.path.basename(f))
+        prWorking('Retrieving Current Packages...')
+        os.system("pacman -Q | sed -e 's/ /-/g' > /tmp/pacback_sys.meta")
+        packages = read_list('/tmp/pacback_sys.meta')
 
-    ################################
-    ### Find Custom Files for RP ###
-    ################################
-    if not len(dir_list) == 0:
-        dir_gb = sum({os.path.getsize(path) for path in dir_list})
-        ### Recursivly Add Files From Each Base Dir
-        for path in dir_list:
-            l = search_fs(path, 'set')
-            for x in l:
-                rp_files.add(x +'<>'+ x)
-    else:
-        dir_gb = 0
+        ### Build System File Lists
+        cache_list = search_fs('~/.cache', 'set')
+        fs_list = set(search_fs('/var/cache/pacman', 'set') | {f for f in cache_list if f.endswith(".pkg.tar.xz")})
+        ### Loop Over Files Searching for Pkgs
+        prWorking('Bulk Scanning for ' + str(len(packages)) + ' Packages...')
+        bulk_search = ('|'.join(list(re.escape(pkg) for pkg in packages))) ### Packages like g++ need to be escaped
+        for f in fs_list:
+            if re.findall(bulk_search, f.lower()):
+                found_pkgs.add(f + '<>/pac_cache/' + os.path.basename(f))
 
-    ###########################
-    ### Build Restore Point ###
-    ###########################
-    with tarfile.open(rp_path + '.tar', 'w') as tar:
-        #  return print(rp_files)
-        tar_files = found_pkgs.union(rp_files)
-        for f in tqdm.tqdm(tar_files, desc='Building Restore Point'):
-            s = f.split('<>')
-            tar.add(s[0], s[1])
-
-    ### Compress Restore Point if Files Added Larger Than 1GB
-    if dir_gb > 1073741824:
-        prWorking('Compressing Restore Point...')
-        ### Check to See if pigz is Installed
-        if any(re.findall(line.lower(), 'pigz') for line in packages):
-            os.system('pigz ' + rp_path + '.tar -f')
+        ################################
+        ### Find Custom Files for RP ###
+        ################################
+        if len(dir_list) > 0:
+            dir_gb = sum({os.path.getsize(path) for path in dir_list})
+            for path in dir_list: ### Recursivly Add Files From Each Base Dir
+                l = search_fs(path, 'set')
+                for x in l:
+                    rp_files.add(x +'<>'+ x)
         else:
-            gz_c(rp_path, rm=True)
+            dir_gb = 0
+
+        ###########################
+        ### Build Restore Point ###
+        ###########################
+        with tarfile.open(rp_path + '.tar', 'w') as tar:
+            tar_files = found_pkgs.union(rp_files) ### Combine Packages and Dirs
+            for f in tqdm.tqdm(tar_files, desc='Building Restore Point'):
+                s = f.split('<>')
+                tar.add(s[0], s[1]) ### This Parses List of Files in the Format '/dir/in/system/<>/dir/in/tar'
+
+        ### Compress Restore Point if Files Added Larger Than 1GB
+        if dir_gb > 1073741824:
+            prWorking('Compressing Restore Point...')
+            ### Check to See if pigz is Installed
+            if any(re.findall(line.lower(), 'pigz') for line in packages):
+                os.system('pigz ' + rp_path + '.tar -f')
+            else:
+                gz_c(rp_path, rm=True)
+    
+    elif rp_full == False:
+        print('Building Light Restore Point...')
+        found_pkgs = set()
 
     ###############################
     ### Generate Meta Data File ###
     ###############################
     import datetime as dt
+    os.system("pacman -Q > /tmp/pacback_sys.meta")
+    packages = read_list('/tmp/pacback_sys.meta')
     meta_list = ['====== Pacback RP #'+ str(rp_num).zfill(2) +' ======',
                  'Packages Installed: ' + str(len(packages)),
                  'Packages in RP: ' + str(len(found_pkgs)),
                  'Date Created: ' + dt.datetime.now().strftime("%Y/%m/%d"),
-                 'Pacback Version: ' + version,
-                 ]
+                 'Pacback Version: ' + version]
     if not len(dir_list) == 0:
         dir_meta = ['Dirs File Count: '+ str(len(rp_files)),
                     'Dirs Total GB: '+ str(round(dir_gb/1073741824, 4)),
@@ -98,91 +108,135 @@ def create_restore_point(rp_num, dir_list):
     prSuccess('Restore Point #' + str(rp_num).zfill(2) + ' Successfully Created!')
 
 
-#######################
-### Rollback to RP
-###################
+#<#><#><#><#><#><#>#<#>#<#
+#+# Rollback to RP
+#<#><#><#><#><#><#>#<#>#<#
+
 def rollback_to_rp(rp_num):
     rp_path = base_dir + '/restore-points/rp' + str(rp_num).zfill(2)
-
-    ############################
-    ### Unpack Restore Point ###
-    ############################
-    if os.path.exists(rp_path + '.tar.gz'):
-        prWorking('Decompressing Restore Point....')
-        if any(re.findall(line.lower(), 'pigz') for line in meta):
-            ### Decompress Restore Point with Pigz if Found
-            os.system('pigz -d ' + rp_path + '.tar.gz -f')
-        else:
-            gz_d(rp_path + '.tar.gz')
-
-    if os.path.exists(rp_path + '.tar'):
-        ### Check if RP is Already Unpacked
-        if os.path.exists(rp_path):
-            shutil.rmtree(rp_path)
-        prWorking('Unpacking Files from Restore Point Tar....')
-        untar_dir(rp_path + '.tar')
-    else:
-        return prError('Restore Point #' + rp_num + ' Was NOT FOUND!')
-
-    ######################################
-    ### Install Restore Point Packages ###
-    ######################################
-    os.system('sudo pacman -U ' + str(rp_path).zfill(2) + '/pac_cache/*')
-    shutil.rmtree(rp_path + '/pac_cache')
-    
-    ### Read RP Meta Data
-    if os.path.exists(rp_path + '.meta'):
-        meta = read_list(rp_path + '.meta')
-        meta_dirs = read_between('========= Dir List =========','======= Pacman List ========', meta)[:-1]
-        old_pkg = read_between('======= Pacman List ========','<Endless>', meta) 
-        old_pkg = {pkg.split(' ')[0] for pkg in old_pkg}
-    else:
-        prError('Restore Point #' + str(rp_num).zfill(2) + ' Meta Data Was NOT FOUND!')
-        return prError('Skipping Advanced Features!')
-    
-    ### Compare Current Pkg List
     os.system("pacman -Q > /tmp/pacback_sys.meta")
     current_pkg = read_list("/tmp/pacback_sys.meta")
-    current_pkg = {pkg.split(' ')[0] for pkg in current_pkg}
-    added_pkg = current_pkg.difference(old_pkg)
-    
-    ### Uninstall Old Packages?
+    if os.path.exists(rp_path + '.tar') or os.path.exists(rp_path + '.tar.gz'):
+        full_rp = True
+    else:
+        full_rp = False
+
+    ### Read RP Meta Data
+    if os.path.exists(rp_path + '.meta'):
+        meta_exists = True
+        meta = read_list(rp_path + '.meta')
+        meta_dirs = read_between('========= Dir List =========','======= Pacman List ========', meta)[:-1]
+        meta_old_pkg = read_between('======= Pacman List ========','<Endless>', meta)
+        meta_old_pkg_strp = {pkg.split(' ')[0] for pkg in meta_old_pkg} ### Strip Version
+        current_pkg_strp = {pkg.split(' ')[0] for pkg in current_pkg} ### Strip Version
+        added_pkg = current_pkg_strp.difference(meta_old_pkg_strp)
+    else:
+        meta_exists = False
+        added_pkg = None
+        meta_old_pkg = None
+
+    ### Branch Based on Existing Files
+    if meta_exists == False and full_rp == False:
+        return prError('Restore Point #' + rp_num + ' Was NOT FOUND!')
+
+    elif full_rp == True:
+        ##########################
+        ### Full Restore Point ###
+        ##########################
+        if os.path.exists(rp_path + '.tar.gz'):
+            prWorking('Decompressing Restore Point....')
+            if any(re.findall(line.lower(), 'pigz') for line in current_pkg):
+                os.system('pigz -d ' + rp_path + '.tar.gz -f') ### Decompress With pigz If Found
+            else:
+                gz_d(rp_path + '.tar.gz')
+
+        if os.path.exists(rp_path + '.tar'):
+            ### Clean RP is Already Unpacked
+            if os.path.exists(rp_path):
+                shutil.rmtree(rp_path)
+            prWorking('Unpacking Files from Restore Point Tar....')
+            untar_dir(rp_path + '.tar')
+
+        ### Install Restore Point Packages
+        os.system('sudo pacman --needed -U ' + str(rp_path).zfill(2) + '/pac_cache/*')
+        shutil.rmtree(rp_path + '/pac_cache')
+
+        if meta_exists == False:
+            prError('Restore Point #' + str(rp_num).zfill(2) + ' Meta Data Was NOT FOUND!')
+            return prError('Skipping Advanced Features!')
+
+    elif meta_exists == True and full_rp == False:
+        ###########################
+        ### Light Restore Point ###
+        ###########################
+        prWorking('Bulk Scanning for ' + str(len(meta_old_pkg)) + ' Packages...')
+        found_pkgs = set()
+
+        ### Copied From Build RP Code
+        search_list = {s.strip().replace(' ', '-') for s in meta_old_pkg}
+        cache_list = search_fs('~/.cache', 'set')
+        fs_list = set(search_fs('/var/cache/pacman', 'set') | {f for f in cache_list if f.endswith(".pkg.tar.xz")})
+        bulk_search = ('|'.join(list(re.escape(pkg) for pkg in search_list))) ### Packages like g++ need to be escaped
+        for f in fs_list:
+            if re.findall(bulk_search, f.lower()):
+                found_pkgs.add(f)
+
+        ### Pass Diff if All Packages Found
+        if len(found_pkgs) == len(current_pkg):
+            prSuccess('All Packages Found In Your Local File System!')
+            os.system('sudo pacman --needed -U ' + ' '.join(found_pkgs))
+       
+        ### Show User Missing Packages
+        elif len(found_pkgs) < len(current_pkg):
+            pkg_split = {pkg.split('/')[-1] for pkg in found_pkgs}
+            pkg_split = {'-'.join(pkg.split('-')[:-1]) for pkg in pkg_split}
+            missing_pkg = search_list.difference(pkg_split)
+            prWarning('Pacback Only Found '+ str(len(found_pkgs)) + ' Old Versions of ' + str(len(current_pkg)) + ' Packages Currently Installed')
+            prWarning('Couldn\'t Find The Following Package Versions:')
+            for pkg in missing_pkg:
+                prError(pkg)
+            if yn_frame('Do You Want To Continue Anyway?') == True:
+                os.system('sudo pacman --needed -U ' + ' '.join(found_pkgs))
+            else:
+                return
+
+    ### Uninstall New Packages? Executes When Meta is True and When Packages Have Been Added
     if len(added_pkg) > 0:
         prWarning('The Following Packages Are Installed But Are NOT Present in Restore Point #' + str(rp_num).zfill(2) + ':')
         for pkg in added_pkg:
             prAdded(pkg)
-        if yn_frame('Do You Want to Remove These Packages?') == True:
+        if yn_frame('Do You Want to Remove These Packages From Your System?') == True:
             os.system('sudo pacman -R ' + ' '.join(added_pkg))
 
+    ##########################
+    ### Diff Restore Files ###
+    ##########################
     if not len(meta_dirs) > 0:
-        shutil.rmtree(rp_path)
+        if full_rp == True:
+            shutil.rmtree(rp_path)
         return prSuccess('Rollback to Restore Point #' + rp_num + ' Complete!')
 
-    ##############################
-    ### Diff Restore Files ###
-    ##############################
     diff_yn = yn_frame('Do You Want to Checksum Diff Restore Point Files Against Your Current File System?')
     if diff_yn == False:
         print('Skipping Diff!')
 
-    ### Diff Files Unpacked From Restore Point
     elif diff_yn == True:
         import multiprocessing as mp
         rp_fs = search_fs(rp_path)
         rp_fs_trim = set(path[len(rp_path):] for path in search_fs(rp_path))
-        
-        ### Checksum Restore Point Files
+
+        ### Checksum Restore Point Files with a MultiProcessing Pool
         with mp.Pool(os.cpu_count()) as pool:
             rp_checksum = set(tqdm.tqdm(pool.imap(checksum_file, rp_fs),
                             total=len(rp_fs), desc='Checksumming Restore Point Files'))
             sf_checksum = set(tqdm.tqdm(pool.imap(checksum_file, rp_fs_trim),
                             total=len(rp_fs_trim), desc='Checksumming Source Files'))
 
-        ### Diff Restore Point Files Against Source
+        ### Compare Checksums For Files That Exist
         rp_csum_trim = set(path[len(rp_path):] for path in rp_checksum)
         rp_diff = sf_checksum.difference(rp_csum_trim)
-        
-        ### Add Missing Files to Diffrent Set
+
+        ### Filter Removed and Changed Files
         diff_removed = set()
         diff_changed = set()
         for csum in rp_diff:
@@ -190,10 +244,9 @@ def rollback_to_rp(rp_num):
                 diff_removed.add(csum)
             else:
                 diff_changed.add(csum.split(' : ')[0] + ' : FILE CHANGED!')
-        
-        ### Check for Added Files
+
+        ### Find Added Files
         src_fs = set()
-        
         for x in meta_dirs:
             for l in search_fs(x):
                 src_fs.add(l)
@@ -211,10 +264,15 @@ def rollback_to_rp(rp_num):
         else:
             print('No Files Have Been Changed!')
 
+    #######################
+    ### Overwrite Files ###
+    #######################
 
-#######################
-### Rollback to Date
-###################
+
+#<#><#><#><#><#><#>#<#>#<#
+#+# Rollback to Date
+#<#><#><#><#><#><#>#<#>#<#
+
 def rollback_to_date(date):
     ### Validate Date Fromat and Build New URL
     if not re.findall(r'([12]\d{3}/(0[1-9]|1[0-2])/(0[1-9]|[12]\d|3[01]))', date):
@@ -228,9 +286,10 @@ def rollback_to_date(date):
     os.system('sudo pacman -Syyuu')
 
 
-#######################
-### Unlock Mirrorlist
-###################
+#<#><#><#><#><#><#>#<#>#<#
+#+# Unlock Mirrorlist
+#<#><#><#><#><#><#>#<#>#<#
+
 def unlock_rollback():
     ### Check if mirrorlist is locked
     if len(read_list('/etc/pacman.d/mirrorlist')) == 1:
@@ -252,17 +311,23 @@ def unlock_rollback():
         return print('Skipping Update!')
 
 
-#######################
-### Parse Args
-###################
-base_dir = os.path.dirname(os.path.realpath(__file__))[:-5]
+#<#><#><#><#><#><#>#<#>#<#
+#+# CLI Args
+#<#><#><#><#><#><#>#<#>#<#
 
 parser = argparse.ArgumentParser(description="A reliable rollback utility for marking and restoring custom save points in Arch Linux.")
 parser.add_argument("-rb", "--rollback", metavar=('RP# or YYYY/MM/DD'), help="Rollback to a previously generated restore point or to an archive date.")
 parser.add_argument("-c", "--create_rp", metavar=('RP#'), help="Generate a pacback restore point. Takes a restore point # as an argument.")
-parser.add_argument("-d", "--add_dir", nargs='*', metavar=('/PATH'), help="Add any custom directories to your restore point during --gen_rp.")
+parser.add_argument("-f", "--full_rp", action='store_true', help="Generate a pacback full restore point.")
+parser.add_argument("-d", "--add_dir", nargs='*', default=[], metavar=('/PATH'), help="Add any custom directories to your restore point during a `--create_rp AND --full_rp`.")
 parser.add_argument("-ur", "--unlock_rollback", action='store_true', help="Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.")
 args = parser.parse_args()
+
+#<#><#><#><#><#><#>#<#>#<#
+#+# Args Flow Control
+#<#><#><#><#><#><#>#<#>#<#
+
+base_dir = os.path.dirname(os.path.realpath(__file__))[:-5]
 
 if args.rollback:
     if re.findall(r'^([1-9]|0[1-9]|[1-9][0-9])$', args.rollback):
@@ -274,13 +339,12 @@ if args.rollback:
 
 elif args.create_rp:
     if re.findall(r'^([1-9]|0[1-9]|[1-9][0-9])$', args.create_rp):
-        if args.add_dir:
-            create_restore_point(args.create_rp, args.add_dir)
+        if args.full_rp:
+            create_restore_point(args.create_rp, args.full_rp, args.add_dir)
         else:
-            create_restore_point(args.create_rp, dir_list=list())
-
+            create_restore_point(args.create_rp, args.full_rp, args.add_dir)
     else:
-        prError('No Usable Argument! Rollback # Must be an INT.')
+        prError('You Are Missing Arguments! Refer to Documentation for Help.')
 
 elif args.unlock_rollback:
     unlock_rollback()
