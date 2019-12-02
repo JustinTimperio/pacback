@@ -195,7 +195,7 @@ def rollback_to_rp(rp_num):
 
     ### Branch Based on Existing Files
     if meta_exists == False and full_rp == False:
-        return prError('Restore Point #' + str(rp_num).zfill(2) + ' Was NOT FOUND!')
+        return prError('Restore Point #' + rp_num + ' Was NOT FOUND!')
 
     elif full_rp == True:
         ##########################
@@ -230,7 +230,7 @@ def rollback_to_rp(rp_num):
         prWorking('Bulk Scanning for ' + str(len(meta_old_pkg)) + ' Packages...')
         found_pkgs = set()
 
-        ### Copied Mainly From Build RP Code
+        ### Copied From Build RP Code
         search_list = {s.strip().replace(' ', '-') for s in meta_old_pkg}
         cache_list = search_fs('~/.cache', 'set')
         fs_list = set(search_fs('/var/cache/pacman', 'set') | {f for f in cache_list if f.endswith(".pkg.tar.xz")})
@@ -239,7 +239,7 @@ def rollback_to_rp(rp_num):
             if re.findall(bulk_search, f.lower()):
                 found_pkgs.add(f)
 
-        ### Pass Comparison if All Packages Found
+        ### Pass Diff if All Packages Found
         if len(found_pkgs) == len(current_pkg):
             prSuccess('All Packages Found In Your Local File System!')
             os.system('sudo pacman --needed -U ' + ' '.join(found_pkgs))
@@ -272,7 +272,7 @@ def rollback_to_rp(rp_num):
     if not len(meta_dirs) > 0:
         if full_rp == True:
             shutil.rmtree(rp_path)
-        return prSuccess('Rollback to Restore Point #' + str(rp_num).zfill(2) + ' Complete!')
+        return prSuccess('Rollback to Restore Point #' + rp_num + ' Complete!')
 
     diff_yn = yn_frame('Do You Want to Checksum Diff Restore Point Files Against Your Current File System?')
     if diff_yn == False:
@@ -466,48 +466,20 @@ def unlock_rollback():
 #<#><#><#><#><#><#>#<#>#<#
 
 parser = argparse.ArgumentParser(description="A reliable rollback utility for marking and restoring custom save points in Arch Linux.")
-parser.add_argument("-sb", "--snapback", action='store_true', help="Rollback packages to the version state stored before that last pacback upgrade.")
 parser.add_argument("-rb", "--rollback", metavar=('RP# or YYYY/MM/DD'), help="Rollback to a previously generated restore point or to an archive date.")
-parser.add_argument("-Syu", "--upgrade", action='store_true', help="Create a light restore point and run a full system upgrade. Use snapback to restore this version state.")
 parser.add_argument("-c", "--create_rp", metavar=('RP#'), help="Generate a pacback restore point. Takes a restore point # as an argument.")
 parser.add_argument("-f", "--full_rp", action='store_true', help="Generate a pacback full restore point.")
 parser.add_argument("-d", "--add_dir", nargs='*', default=[], metavar=('/PATH'), help="Add any custom directories to your restore point during a `--create_rp AND --full_rp`.")
-parser.add_argument("-u", "--unlock_rollback", action='store_true', help="Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.")
-parser.add_argument("-i", "--info", metavar=('RP#'), help="Print information about a retore point.")
+parser.add_argument("-ur", "--unlock_rollback", action='store_true', help="Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.")
 args = parser.parse_args()
 
 #<#><#><#><#><#><#>#<#>#<#
 #+# Args Flow Control
 #<#><#><#><#><#><#>#<#>#<#
+
 base_dir = os.path.dirname(os.path.realpath(__file__))[:-5]
 
-if args.info:
-    if re.findall(r'^([1-9]|0[1-9]|[1-9][0-9])$', args.info):
-        rp = base_dir + '/restore-points/rp' + str(args.info).zfill(2)
-        if os.path.exists(rp + '.meta'):
-            meta = read_list(rp + '.meta')
-            meta = read_between('Pacback RP', 'Pacman List', meta, re_flag=True)
-            for s in meta[:-1]:
-                print(s)
-        
-        elif os.path.exists(rp + '.tar') or os.path.exists(rp + '.tar.gz'):
-            prError('No Meta Exists For This Restore Point!')
-        
-        else:
-            prError('No Restore Point #' + str(args.info).zfill(2) + ' Was NOT Found!')
-    else:
-        prError('No Usable Argument! Rollback Arg Must be a Restore Point # or a Date.')
-
-elif args.upgrade:
-    create_restore_point('00', args.full_rp, args.add_dir)
-    os.system('sudo pacman -Syu')
-
-elif args.snapback:
-    if os.path.exists(base_dir + '/restore-points/rp00.meta'):
-        rollback_to_rp('00')
-    else:
-        prError('No Snapback Found!')
-
+<<<<<<< HEAD
 elif args.rollback:
 =======
         return print('Pacback Does NOT Have an Active Date Lock!')
@@ -533,6 +505,9 @@ args = parser.parse_args()
 
 if args.rollback:
 >>>>>>> master
+=======
+if args.rollback:
+>>>>>>> parent of b3fbcd9...         modified:   core/pacback.py
     if re.findall(r'^([1-9]|0[1-9]|[1-9][0-9])$', args.rollback):
         rollback_to_rp(args.rollback)
     elif re.findall(r'^(?:[0-9]{2})?[0-9]{2}/[0-3]?[0-9]/(?:[0-9]{2})?[0-9]{2}$', args.rollback):
