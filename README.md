@@ -55,8 +55,8 @@ Another popular way to rollback package versions is to use the Arch Linux Archiv
 ### Full System Backups 
 Another use for Pacback Restore Points is full system backups of your laptop or desktop in case of a drive failure or device loss. For many the simplest way to backup, their system is just to tar the whole system. This is slow and requires storing many files that are not worth storing. You can create a full system restore point by simply doing the following:
 
-**Using `pacback -c 1 -f -d /home/user/.config /home/user/.ssh /home/user/Documents` to back up a system**
-![Pacback Full System Backup](https://i.imgur.com/wSj0XKc.gif)
+**`pacback -c 1 -f -d /home/user/.config /home/user/.ssh /home/user/Documents`**
+
 
 
 ## Design:
