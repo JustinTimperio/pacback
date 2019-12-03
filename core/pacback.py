@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 #### A utility for marking and restoring stable arch packages
-version = '1.3.0'
+version = '1.3.2'
 from python_scripts import *
 import tqdm, argparse
 

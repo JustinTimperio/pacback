@@ -58,7 +58,7 @@ First, we create a restore point with `pacback -c 3`, then install Haskell packa
 Another use for Pacback Restore Points is full system backups of your laptop or desktop in case of a drive failure or device loss. For many the simplest way to backup, their system is just to tar the whole system. This is slow and requires storing many files that are not worth storing. You can create a full system restore point by simply doing the following:
 
 **`pacback -c 1 -f -d /home/user/.config /home/user/.ssh /home/user/Documents`**
-![](https://i.imgur.com/r7dYGMy.gif)
+![Full System Backup](https://i.imgur.com/r7dYGMy.gif)
 
 ### Rolling Back to an Archive Date
 Another popular way to rollback package versions is to use the Arch Linux Archives to pull packages with pacman. Pacback automates the entire process with the `pacback -rb` command. To rollback to a specific date, give `-rb` a date in YYYY/MM/DD format and Pacback will automatically save your mirrorlist, point to an archive URL, then run a full system downgrade. When every you are ready to jump back to the head, run `pacback -u` and Pacback with automatically retore your old mirrorlist. In the event that you destroy this backup Pacback can automatically fetch a new mirrorlist for the system.
