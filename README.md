@@ -40,17 +40,18 @@ While there are only a few CLI commands, they can be used in a wide variety of c
 One of the problems with rolling releases is you never know when a problem might occur. It may be months before you run into an issue at which point you will need to scramble to figure out when your system was stable last. Pacback offers a specialized command that solves this issue. Pacback will create a Light Restore Point numbered 00 when upgrade, and will then run a full system upgrade. If you run into any issues with the upgrade simply use `pacback --snapback` to instantly downgrade only the packages you upgraded.
 
 **Using `pacback --snapback` to instantly rollback and -Syu upgrade** 
-![Pacback --snapback](https://i.imgur.com/HhylslR.gif)
+![Pacback Snapback](https://i.imgur.com/6wzRXk9.gif)
 
 ### Simple System Maintenance for Developers
 If you are like me you love to install and test the latest projects the community is working on. The downside of doing this is the slow build-up of packages as you try to remember why that you ever installed a set of packages. To avoid this you can use pacback  to create a restore point then install a bunch of experimental packages you only plan on keeping for a few days. After you're done, simply roll back to the Restore Point and all the packages you installed will be removed. In the following example, I will install Haskell which is a dependency nightmare. After installing it we will show how to quickly uninstall all your changes. 
 
 First, we create a restore point with `pacback -c 3`, then install Haskell packages with `pacman -S stack`. After all the packages are installed we will rollback and uninstall all Haskell packages we added using `pacback -rb 3`.
-![Removing New Packages](https://i.imgur.com/ew3xO6R.gif)
+![Pacback Haskell](https://i.imgur.com/WQzEnWt.gif)
 
 ### Rolling Back to an Archive Date
 Another popular way to rollback package versions is to use the Arch Linux Archives to pull packages with pacman. Pacback automates the entire process with the `pacback -rb` command. To rollback to a specific date, give `-rb` a date in YYYY/MM/DD format and Pacback will automatically save your mirrorlist, point to an archive URL, then run a full system downgrade. When every you are ready to jump back to the head, run `pacback -u` and Pacback with automatically retore your old mirrorlist. In the event that you destroy this backup Pacback can automatically fetch a new mirrorlist for the system.
 
+**`pacback -rb 2019/10/18`**
 
 ### Full System Backups 
 Another use for Pacback Restore Points is full system backups of your laptop or desktop in case of a drive failure or device loss. For many the simplest way to backup, their system is just to tar the whole system. This is slow and requires storing many files that are not worth storing. You can create a full system restore point by simply doing the following:
