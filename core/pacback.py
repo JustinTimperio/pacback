@@ -1,8 +1,8 @@
 #! /usr/bin/env python3
 #### A utility for marking and restoring stable arch packages
-version = '1.2.0'
+version = '1.3.2'
 from python_scripts import *
-import re, tqdm, argparse #, pyinquirer
+import tqdm, argparse
 
 def prError(text): print("\u001b[31;1m{}\033[00m" .format(text))
 def prSuccess(text): print("\u001b[32;1m{}\033[00m" .format(text))
@@ -19,7 +19,8 @@ def prAdded(text): print("\033[94m{}\033[00m" .format(text))
 def create_restore_point(rp_num, rp_full, dir_list):
     rp_path = base_dir + '/restore-points/rp' + str(rp_num).zfill(2)
     if os.path.exists(rp_path + '.tar') or os.path.exists(rp_path + '.tar.gz') or os.path.exists(rp_path + '.meta'):
-        if yn_frame('Restore Point #' + str(rp_num).zfill(2) + ' Already Exists! Do You Want to Overwrite It?') == True:
+        prWarning('Restore Point #' + str(rp_num).zfill(2) + ' Already Exists!') 
+        if yn_frame('Do You Want to Overwrite It?') == True:
             rm_file(rp_path + '.tar', sudo=True)
             rm_file(rp_path + '.tar.gz', sudo=True)
             rm_file(rp_path + '.meta', sudo=True)
@@ -44,18 +45,23 @@ def create_restore_point(rp_num, rp_full, dir_list):
         for f in fs_list:
             if re.findall(bulk_search, f.lower()):
                 found_pkgs.add(f + '<>/pac_cache/' + os.path.basename(f))
+        pac_size = 0
+        for f in found_pkgs:
+            pac_size += os.path.getsize(f.split('<>')[0])
 
         ################################
         ### Find Custom Files for RP ###
         ################################
+        dir_size = 0
         if len(dir_list) > 0:
-            dir_gb = sum({os.path.getsize(path) for path in dir_list})
+            for d in dir_list:
+                for f in search_fs(d):
+                    dir_size += os.path.getsize(f)
+
             for path in dir_list: ### Recursivly Add Files From Each Base Dir
                 l = search_fs(path, 'set')
                 for x in l:
                     rp_files.add(x +'<>'+ x)
-        else:
-            dir_gb = 0
 
         ###########################
         ### Build Restore Point ###
@@ -67,17 +73,18 @@ def create_restore_point(rp_num, rp_full, dir_list):
                 tar.add(s[0], s[1]) ### This Parses List of Files in the Format '/dir/in/system/<>/dir/in/tar'
 
         ### Compress Restore Point if Files Added Larger Than 1GB
-        if dir_gb > 1073741824:
+        if dir_size > 1073741824:
             prWorking('Compressing Restore Point...')
             ### Check to See if pigz is Installed
-            if any(re.findall(line.lower(), 'pigz') for line in packages):
+            if any(re.findall('pigz', line.lower()) for line in packages):
                 os.system('pigz ' + rp_path + '.tar -f')
             else:
-                gz_c(rp_path, rm=True)
+                gz_c(rp_path + '.tar', rm=True)
     
     elif rp_full == False:
         print('Building Light Restore Point...')
         found_pkgs = set()
+        pac_size = 0
 
     ###############################
     ### Generate Meta Data File ###
@@ -86,13 +93,14 @@ def create_restore_point(rp_num, rp_full, dir_list):
     os.system("pacman -Q > /tmp/pacback_sys.meta")
     packages = read_list('/tmp/pacback_sys.meta')
     meta_list = ['====== Pacback RP #'+ str(rp_num).zfill(2) +' ======',
+                 'Date Created: ' + dt.datetime.now().strftime("%Y/%m/%d"),
                  'Packages Installed: ' + str(len(packages)),
                  'Packages in RP: ' + str(len(found_pkgs)),
-                 'Date Created: ' + dt.datetime.now().strftime("%Y/%m/%d"),
+                 'Size of Packages in RP: ' + str(convert_size(pac_size)),
                  'Pacback Version: ' + version]
     if not len(dir_list) == 0:
         dir_meta = ['Dirs File Count: '+ str(len(rp_files)),
-                    'Dirs Total GB: '+ str(round(dir_gb/1073741824, 4)),
+                    'Dirs Total Size: '+ str(convert_size(dir_size)),
                     '',
                     '========= Dir List =========']
         for dir in dir_list:
@@ -145,7 +153,7 @@ def rollback_to_rp(rp_num):
         ##########################
         if os.path.exists(rp_path + '.tar.gz'):
             prWorking('Decompressing Restore Point....')
-            if any(re.findall(line.lower(), 'pigz') for line in current_pkg):
+            if any(re.findall('pigz', line.lower()) for line in packages):
                 os.system('pigz -d ' + rp_path + '.tar.gz -f') ### Decompress With pigz If Found
             else:
                 gz_d(rp_path + '.tar.gz')
@@ -216,57 +224,97 @@ def rollback_to_rp(rp_num):
             shutil.rmtree(rp_path)
         return prSuccess('Rollback to Restore Point #' + str(rp_num).zfill(2) + ' Complete!')
 
-    diff_yn = yn_frame('Do You Want to Checksum Diff Restore Point Files Against Your Current File System?')
-    if diff_yn == False:
-        print('Skipping Diff!')
+    else:
+        diff_yn = yn_frame('Do You Want to Checksum Diff Restore Point Files Against Your Current File System?')
+        if diff_yn == False:
+            print('Skipping Diff!')
+            pass
 
-    elif diff_yn == True:
-        import multiprocessing as mp
-        rp_fs = search_fs(rp_path)
-        rp_fs_trim = set(path[len(rp_path):] for path in search_fs(rp_path))
+        elif diff_yn == True:
+            import multiprocessing as mp
+            rp_fs = search_fs(rp_path)
+            rp_fs_trim = set(path[len(rp_path):] for path in search_fs(rp_path))
 
-        ### Checksum Restore Point Files with a MultiProcessing Pool
-        with mp.Pool(os.cpu_count()) as pool:
-            rp_checksum = set(tqdm.tqdm(pool.imap(checksum_file, rp_fs),
-                            total=len(rp_fs), desc='Checksumming Restore Point Files'))
-            sf_checksum = set(tqdm.tqdm(pool.imap(checksum_file, rp_fs_trim),
-                            total=len(rp_fs_trim), desc='Checksumming Source Files'))
+            ### Checksum Restore Point Files with a MultiProcessing Pool
+            with mp.Pool(os.cpu_count()) as pool:
+                rp_checksum = set(tqdm.tqdm(pool.imap(checksum_file, rp_fs),
+                                total=len(rp_fs), desc='Checksumming Restore Point Files'))
+                sf_checksum = set(tqdm.tqdm(pool.imap(checksum_file, rp_fs_trim),
+                                total=len(rp_fs_trim), desc='Checksumming Source Files'))
 
-        ### Compare Checksums For Files That Exist
-        rp_csum_trim = set(path[len(rp_path):] for path in rp_checksum)
-        rp_diff = sf_checksum.difference(rp_csum_trim)
+            ### Compare Checksums For Files That Exist
+            rp_csum_trim = set(path[len(rp_path):] for path in rp_checksum)
+            rp_diff = sf_checksum.difference(rp_csum_trim)
 
-        ### Filter Removed and Changed Files
-        diff_removed = set()
-        diff_changed = set()
-        for csum in rp_diff:
-            if re.findall('FILE MISSING', csum):
-                diff_removed.add(csum)
+            ### Filter Removed and Changed Files
+            diff_removed = set()
+            diff_changed = set()
+            for csum in rp_diff:
+                if re.findall('FILE MISSING', csum):
+                    diff_removed.add(csum)
+                else:
+                    diff_changed.add(csum.split(' : ')[0] + ' : FILE CHANGED!')
+
+            ### Find Added Files
+            src_fs = set()
+            for x in meta_dirs:
+                for l in search_fs(x):
+                    src_fs.add(l)
+            diff_new = src_fs.difference(rp_fs_trim)
+
+            ### Print Changed Files For User
+            if len(diff_changed) + len(diff_new) + len(diff_removed) > 0:
+                print('The Following Files Have Changed:')
+                for f in diff_changed:
+                    prChanged(f)
+                for f in diff_removed:
+                    prRemoved(f)
+                for f in diff_new:
+                    prAdded(f + ' : NEW FILE!')
             else:
-                diff_changed.add(csum.split(' : ')[0] + ' : FILE CHANGED!')
-
-        ### Find Added Files
-        src_fs = set()
-        for x in meta_dirs:
-            for l in search_fs(x):
-                src_fs.add(l)
-        diff_new = src_fs.difference(rp_fs_trim)
-
-        ### Print Changed Files For User
-        if len(diff_changed) + len(diff_new) + len(diff_removed) > 0:
-            print('The Following Files Have Changed:')
-            for f in diff_changed:
-                prChanged(f)
-            for f in diff_removed:
-                prRemoved(f)
-            for f in diff_new:
-                prAdded(f + ' : NEW FILE!')
-        else:
-            print('No Files Have Been Changed!')
+                shutil.rmtree(rp_path)
+                return print('No Files Have Been Changed!')
 
     #######################
     ### Overwrite Files ###
     #######################
+    if diff_yn == False:
+        prWarning('YOU HAVE NOT CHECKSUMED THE RESTORE POINT! OVERWRITING ALL FILES CAN BE EXTREAMLY DANGOURS!')
+        ow = yn_frame('Do You Still Want to Continue and Restore ALL Files In the Restore Point?')
+        if ow == False:
+            return print('Skipping Automatic File Restore! Restore Point Files Are Unpacked in ' + rp_path)
+        
+        elif ow == True: 
+            print('Starting Full File Restore! Please Be Patient As All Files are Overwritten...')
+            rp_fs = search_fs(rp_path)
+            for f in rp_fs:
+                os.system('sudo mkdir -p ' + escape_bash('/'.join(f.split('/')[:-1])) + ' && sudo cp -af ' + escape_bash(f) + ' ' + escape_bash(f[len(rp_path):]))
+        
+    elif diff_yn == True:
+        ow = yn_frame('Do You Want to Automaticly Restore Changed and Missing Files?')
+        if ow == False:
+            return print('Skipping Automatic Restore! Restore Point Files Are Unpacked in ' + rp_path)
+        
+        if ow == True:
+            if len(diff_changed) > 0:
+                if yn_frame('Do You Want to Overwrite Files That Have Been CHANGED?') == True:
+                    for f in diff_changed:
+                        fs = (f.split(' : ')[0])
+                        os.system('sudo cp -af ' + escape_bash(rp_path + fs) + ' ' + escape_bash(fs))
+            
+            if len(diff_removed) > 0:
+                if yn_frame('Do You Want to Add Files That Have Been REMOVED?') == True:
+                    for f in diff_removed:
+                        fs = (f.split(' : ')[0])
+                        os.system('sudo mkdir -p ' + escape_bash('/'.join(fs.split('/')[:-1])) + ' && sudo cp -af ' + escape_bash(rp_path + fs) + ' ' + escape_bash(fs))
+            
+            if len(diff_new) > 0:
+                if yn_frame('Do You Want to Remove Files That Have Beend ADDED?') == True:
+                    for f in diff_new:
+                        fs = (f.split(' : ')[0])
+                        os.system('sudo rm ' + fs)
+    shutil.rmtree(rp_path)
+    prSuccess('File Restore Complete!')
 
 
 #<#><#><#><#><#><#>#<#>#<#
