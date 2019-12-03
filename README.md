@@ -4,11 +4,11 @@
 **Core Feature:**
 - Instant Rollback of -Syu Upgrades
 - The Ability to Track All Additions, Removals, and Upgrades Made to Packages
- - Native AUR Support
- - Automatically Save and Restore App Config Files
- - FailProof Rollbacks Even When Caches Are Deleted
- - Multi-Threaded File Checksumming and Restore Point Compression
- - Low Profile Full System Backups
+- Native AUR Support
+- Automatically Save and Restore App Config Files
+- FailProof Rollbacks Even When Caches Are Deleted
+- Multi-Threaded File Checksumming and Restore Point Compression
+- Low Profile Full System Backups
 
 ## Abstract:
 I love Arch Linux and rolling-release distros. Being at the head of Linux kernel and application development means access to the latest features and bug fixes. This also often means dealing with the latest bugs. While I don't run into major bugs often when they happen they cripple my productivity.  Manually reversing individual packages is generally a slow and manual process. While some tools exist none meet my needs. In particular support for rolling back AUR packages is extremely lacking.  
@@ -16,21 +16,21 @@ I love Arch Linux and rolling-release distros. Being at the head of Linux kernel
 ## Pacback-CLI Commands and Flags:
 Pacback offers a few core commands that streamline the process of creating and restoring versions. The CLI is designed to be dead simple and provide detailed feedback and user control.
 
-`-sb, --snapback` - Rollback packages to the version state stored before that last pacback upgrade.
-**Example: `pacback --snapback`**
-`-rb, --rollback` - Rollback to a previously generated restore point or to an archive date.
-**Example: `pacback --rollback 1` or `pacback --rollback 2019/08/14`**
-`-Syu, --upgrade` - Create a light restore point and run a full system upgrade. Use snapback to restore this version state.
-**Example: `pacback -Syu`**
-`-c, --create_rp` - Generate a pacback restore point. Takes a restore point # as an argument.
-**Example: `pacback --create_rp 1`**
-`-f, --full_rp` - Generate a pacback full restore point.
-**Example: `pacback --create_rp 1 -f`**
-`-d, --add_dir` - Add any custom directories to your restore point during a `--create_rp AND --full_rp`.
-**Example: `pacback --create_rp 1 --full_rp --add_dir /dir/to/add /dir/to/add /dir/to/add`**
-`-u, --unlock_rollback` - Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.
-**Example: `pacback --unlock_rollback`**
-`-i, --info` - Print information about a retore point.
+`-sb, --snapback` - Rollback packages to the version state stored before that last pacback upgrade.\
+**Example: `pacback --snapback`**\
+`-rb, --rollback` - Rollback to a previously generated restore point or to an archive date.\
+**Example: `pacback --rollback 1` or `pacback --rollback 2019/08/14`**\
+`-Syu, --upgrade` - Create a light restore point and run a full system upgrade. Use snapback to restore this version state.\
+**Example: `pacback -Syu`**\
+`-c, --create_rp` - Generate a pacback restore point. Takes a restore point # as an argument.\
+**Example: `pacback --create_rp 1`**\
+`-f, --full_rp` - Generate a pacback full restore point.\
+**Example: `pacback --create_rp 1 -f`**\
+`-d, --add_dir` - Add any custom directories to your restore point during a `--create_rp AND --full_rp`.\
+**Example: `pacback --create_rp 1 --full_rp --add_dir /dir/to/add /dir/to/add /dir/to/add`**\
+`-u, --unlock_rollback` - Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.\
+**Example: `pacback --unlock_rollback`**\
+`-i, --info` - Print information about a retore point.\
 **Example: `pacback --info 1`**
 
 ## Pacback Usage Examples:
@@ -40,13 +40,13 @@ While there are only a few CLI commands, they can be used in a wide variety of c
 One of the problems with rolling releases is you never know when a problem might occur. It may be months before you run into an issue at which point you will need to scramble to figure out when your system was stable last. Pacback offers a specialized command that solves this issue. Pacback will create a Light Restore Point numbered 00 when upgrade, and will then run a full system upgrade. If you run into any issues with the upgrade simply use `pacback --snapback` to instantly downgrade only the packages you upgraded.
 
 **Using `pacback --snapback` to instantly rollback and -Syu upgrade** 
-![Pacback --snapback](https://i.imgur.com/rzZSHyo.gif)
+![Pacback --snapback](https://i.imgur.com/HhylslR.gif)
 
 ### Simple System Maintenance for Developers
 If you are like me you love to install and test the latest projects the community is working on. The downside of doing this is the slow build-up of packages as you try to remember why that you ever installed a set of packages. To avoid this you can use pacback  to create a restore point then install a bunch of experimental packages you only plan on keeping for a few days. After you're done, simply roll back to the Restore Point and all the packages you installed will be removed. In the following example, I will install Haskell which is a dependency nightmare. After installing it we will show how to quickly uninstall all your changes. 
 
 First, we create a restore point with `pacback -c 3`, then install Haskell packages with `pacman -S stack`. After all the packages are installed we will rollback and uninstall all Haskell packages we added using `pacback -rb 3`.
-![Removing New Packages](https://i.imgur.com/XBTTBSL.gif)
+![Removing New Packages](https://i.imgur.com/ew3xO6R.gif)
 
 ### Rolling Back to an Archive Date
 Another popular way to rollback package versions is to use the Arch Linux Archives to pull packages with pacman. Pacback automates the entire process with the `pacback -rb` command. To rollback to a specific date, give `-rb` a date in YYYY/MM/DD format and Pacback will automatically save your mirrorlist, point to an archive URL, then run a full system downgrade. When every you are ready to jump back to the head, run `pacback -u` and Pacback with automatically retore your old mirrorlist. In the event that you destroy this backup Pacback can automatically fetch a new mirrorlist for the system.
