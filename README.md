@@ -41,10 +41,10 @@ Pacback offers a few core commands that streamline the process of creating and r
 ## Pacback Usage Examples:
 While there are only a few CLI commands, they can be used in a wide variety of complex restoration tasks. Below are some examples of how to use and deploy Pacback in your systems.
 
-### Using `pacback -Syu` Instead of `pacman -Syu`
+### Using pacback -Syu Instead of pacman -Syu
 One of the problems with rolling releases is you never know when a problem might occur. It may be months before you run into an issue at which point you will need to scramble to figure out when your system was stable last. Pacback offers a specialized command that solves this issue. Pacback will create a Light Restore Point numbered 00 when upgrade, and will then run a full system upgrade. If you run into any issues with the upgrade simply use `pacback --snapback` to instantly downgrade only the packages you upgraded.
 
-**Using `pacback --snapback` to instantly rollback and -Syu upgrade** 
+**Using `pacback --snapback` to instantly rollback an -Syu upgrade** 
 ![Pacback Snapback](https://i.imgur.com/XjuFfX9.gifdTlmsoE.gif)
 
 ### Simple System Maintenance for Developers
@@ -101,6 +101,7 @@ When you fallback on a Full Restore Point, Pacback will unpack the tar and insta
 
 ### Metadata Files
 Restore Point metadata files contain information in a human readable format about the system and packages installed on the system at the time of its creation. This information is used by Pacback to restore older versions of packages and provide general information about the Restore Point. Each meta data file will look something like this:
+
 > ====== Pacback RP #02 ======  
 Date Created: 2019/12/02  
 Packages Installed: 1038  
