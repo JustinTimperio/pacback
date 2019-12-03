@@ -76,14 +76,15 @@ def create_restore_point(rp_num, rp_full, dir_list):
         if dir_size > 1073741824:
             prWorking('Compressing Restore Point...')
             ### Check to See if pigz is Installed
-            if any(re.findall(line.lower(), 'pigz') for line in packages):
+            if any(re.findall('pigz', line.lower()) for line in packages):
                 os.system('pigz ' + rp_path + '.tar -f')
             else:
-                gz_c(rp_path, rm=True)
+                gz_c(rp_path + '.tar', rm=True)
     
     elif rp_full == False:
         print('Building Light Restore Point...')
         found_pkgs = set()
+        pac_size = 0
 
     ###############################
     ### Generate Meta Data File ###
@@ -152,7 +153,7 @@ def rollback_to_rp(rp_num):
         ##########################
         if os.path.exists(rp_path + '.tar.gz'):
             prWorking('Decompressing Restore Point....')
-            if any(re.findall(line.lower(), 'pigz') for line in current_pkg):
+            if any(re.findall('pigz', line.lower()) for line in packages):
                 os.system('pigz -d ' + rp_path + '.tar.gz -f') ### Decompress With pigz If Found
             else:
                 gz_d(rp_path + '.tar.gz')
