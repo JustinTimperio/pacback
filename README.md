@@ -3,7 +3,7 @@
 
 
 ## Abstract:
-I love Arch Linux and rolling-release distros. Being at the head of Linux kernel and application development means access to the latest features and bug fixes. This also often means dealing with the latest bugs. While I don't run into major bugs often when they happen they cripple my productivity.  Manually reversing individual packages is generally a slow and manual process. While some tools exist none meet my needs. In particular support for rolling back AUR packages is extremely lacking.  
+I love Arch Linux and rolling-release distros. Being at the head of Linux kernel and application development means access to the latest features and bug fixes. This also often means dealing with the latest bugs. While I don't run into major bugs often, when they happen, they cripple my productivity.  Manually reversing individual packages is generally a slow and manual process. While some tools exist, none meet my needs. In particular, support for rolling back AUR packages is extremely lacking.  
 
 ## Core Feature:
 - Instant Rollback of -Syu Upgrades
