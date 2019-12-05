@@ -85,7 +85,7 @@ In the following example, I will install Haskell which is a dependency nightmare
 ![Pacback Haskell](https://imgur.com/PzUznWZ.gif)
 
 ### Backup Version Sensitive Application Data
-In many cases config files many need to be modified when updating certain packages. You may want to backup application data before deploying an upgrade incase of error or corruption when upgradeing. Pacback makes it extremely simple to store files like this and automatically compares files that you have stored when against the system.  Pacback will let you selectively overwrite each subsection of file type: Changed, Added, and Removed.
+In some cases, config files many need to be modified when updating packages. You may want to backup this application data before deploying an upgrade incase of error or corruption. Pacback makes it extremely simple to store files like this and automatically compares files that you have stored against the system.  Pacback will let you selectively overwrite each subsection of file type: Changed, Added, and Removed.
 
 In this example we pack up an Apache websever and Postgresql database:
 1. `pacback -c 1 -f -d /var/www /etc/httpd /var/lib/postgres/data`
@@ -95,7 +95,7 @@ In this example we pack up an Apache websever and Postgresql database:
 ![Pacback Saving App Data](https://imgur.com/Ag0NROG.gif)
 
 ### Rollback a List of Packages 
-Most issues with an updates stem from a single package or a set of related package. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`
+Most issues with an update stem from a single package or a set of related package. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`
 
 In this example we selectively rollback 2 packages
 1. `pacback -pkg typescript electron4`
