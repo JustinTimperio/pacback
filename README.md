@@ -80,14 +80,14 @@ If you are like me you love to install and test the latest projects the communit
 In the following example, I will install Haskell which is a dependency nightmare. After installing it we will show how to quickly uninstall all your changes. 
 1. First, we create a restore point with: `pacback -c 3`
 2. Next we install Haskell packages with: `pacman -S stack` 
-3. Once you are ready to remove Haskell use: `pacback -rb 3`.
+3. Once you are ready to remove Haskell use: `pacback -rb 3`
 
 ![Pacback Haskell](https://imgur.com/PzUznWZ.gif)
 
 ### Backup Version Sensitive Application Data
 In some cases, config files many need to be modified when updating packages. You may want to backup this application data before deploying an upgrade incase of error or corruption. Pacback makes it extremely simple to store files like this and automatically compares files that you have stored against the system.  Pacback will let you selectively overwrite each subsection of file type: Changed, Added, and Removed.
 
-In this example we pack up an Apache websever and Postgresql database:
+In this example we pack up an Apache websever and Postgresql database.
 1. `pacback -c 1 -f -d /var/www /etc/httpd /var/lib/postgres/data`
 2. `pacback -Syu`
 3. `pacback -rb 1` 
@@ -97,7 +97,7 @@ In this example we pack up an Apache websever and Postgresql database:
 ### Rollback a List of Packages 
 Most issues with an update stem from a single package or a set of related package. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`
 
-In this example we selectively rollback 2 packages
+In this example we selectively rollback 2 packages.
 1. `pacback -pkg typescript electron4`
 
 ![Pacback Rolling Back a List of Packages](https://imgur.com/Rhy6iDn.gif)
