@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 #### A utility for marking and restoring stable arch packages
-version = '1.4.0'
+version = '1.4.1'
 from python_scripts import *
 import tqdm, argparse
 
@@ -17,6 +17,12 @@ def prAdded(text): print("\033[94m{}\033[00m" .format(text))
 #<#><#><#><#><#><#>#<#>#<#
 
 def create_restore_point(rp_num, rp_full, dir_list):
+    ### Fail Safe for New Users
+    if not os.path.exists(base_dir + '/restore-points'):
+        mkdir(base_dir + '/restore-points', sudo=True)
+        open_permissions(base_dir + '/restore-points')
+    
+    ### Start For Real Now
     rp_path = base_dir + '/restore-points/rp' + str(rp_num).zfill(2)
     if os.path.exists(rp_path + '.tar') or os.path.exists(rp_path + '.tar.gz') or os.path.exists(rp_path + '.meta'):
         if not int(rp_num) == 0:
