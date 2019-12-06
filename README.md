@@ -48,9 +48,8 @@ Pacback offers a few core commands that streamline the process of creating and r
 ## Install Instructions:
 Where ever you clone the repository will act as the base directory for Restore Points.
 1. `git clone --recurse-submodules https://github.com/JustinTimperio/pacback.git`
-2. `mkdir /dir/to/pacback/restore-points`
-3. `pacman -S python-tqdm`
-4. `sudo ln -s /dir/to/pacback/core/pacback.py /usr/bin/pacback`
+2. `pacman -S python-tqdm`
+3. `sudo ln -s /dir/to/pacback/core/pacback.py /usr/bin/pacback`
 
 ------------------
 
