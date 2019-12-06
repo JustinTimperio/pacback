@@ -53,14 +53,6 @@ Where ever you clone the repository will act as the base directory for Restore P
 
 ------------------
 
-## Install Instructions:
-Where ever you clone the repository will act as the base directory for Restore Points.
-1. `git clone --recurse-submodules https://github.com/JustinTimperio/pacback.git`
-3. `pip install tqdm`
-4. `sudo ln -s /dir/to/pacback/core/pacback.py /usr/bin/pacback`
-
-------------------
-
 ## Pacback Usage Examples:
 While there are only a few CLI commands, they can be used in a wide variety of complex restoration tasks. Below are some examples of how to use and deploy Pacback in your systems.
 
