@@ -8,7 +8,7 @@ I love Arch Linux and rolling-release distros. Being at the head of Linux kernel
 ## Core Feature:
 
 - Instant Rollback of -Syu Upgrades
-- The Ability to Track All Additions, Removals, and Upgrades Made to Packages
+- The Ability to Track All Additions, Removals, and Upgrades Made to the System
 - Native AUR Support
 - Automatically Save and Restore App Config Files
 - FailProof Rollbacks Even When Caches Are Deleted
@@ -20,27 +20,26 @@ I love Arch Linux and rolling-release distros. Being at the head of Linux kernel
 ## Pacback-CLI Commands and Flags:
 Pacback offers a few core commands that streamline the process of creating and restoring versions. The CLI is designed to be dead simple and provide detailed feedback and user control.
 
-`-sb, --snapback` - Rollback packages to the version state stored before that last pacback upgrade.\
+-sb, --snapback | Rollback packages to the version state stored before that last pacback upgrade.\
 **Example: `pacback --snapback`**\
-`-rb, --rollback` - Rollback to a previously generated restore point or to an archive date.\
+-rb, --rollback | Rollback to a previously generated restore point or to an archive date.\
 **Example: `pacback --rollback 1` or `pacback --rollback 2019/08/14`**\
-`-Syu, --upgrade` - Create a light restore point and run a full system upgrade. Use snapback to restore this version state.\
+-Syu, --upgrade | Create a light restore point and run a full system upgrade. Use snapback to restore this version state.\
 **Example: `pacback -Syu`**\
-`-c, --create_rp` - Generate a pacback restore point. Takes a restore point # as an argument.\
-**Example: `pacback --create_rp 1`**\
-`-f, --full_rp` - Generate a pacback full restore point.\
-**Example: `pacback --create_rp 1 -f`**\
-`-pkg, --rollback_pkgs` - Rollback a list of packages looking for old versions on the system.\
+-c, --create_rp | Generate a pacback restore point. Takes a restore point # as an argument.\
+**Example: `pacback -c 1`**\
+-f, --full_rp | Generate a pacback full restore point.\
+**Example: `pacback -f -c 1`**\
+-pkg, --rollback_pkgs | - Rollback a list of packages looking for old versions on the system.\
 **Example: `pacback -pkg package_1 package_2 package_3`**\
-`-d, --add_dir` - Add any custom directories to your restore point during a `--create_rp AND --full_rp`.\
-**Example: `pacback --create_rp 1 --full_rp --add_dir /dir/to/add /dir/to/add /dir/to/add`**\
-`-nc, --no_confirm` - Skip asking user questions during RP creation. Will answer yes to all.\
-**Example: `pacback --create_rp 1 -nc`**\
-`-nc, --no_confirm` - Skip asking user questions during RP creation. Will answer yes to all.
+-d, --add_dir | Add any custom directories to your restore point during a `--create_rp AND --full_rp`.\
+**Example: `pacback -f -c 1 -d /dir1/to/add /dir2/to/add /dir3/to/add`**\
+-nc, --no_confirm | Skip asking user questions during RP creation. Will answer yes to all.\
+**Example: `pacback -nc -c 1`**\
+-u, --unlock_rollback -| Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.\
 **Example: `pacback --unlock_rollback`**\
-`-u, --unlock_rollback` - Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.\
+-i, --info | Print information about a retore point.\
 **Example: `pacback --info 1`**
-`-i, --info` - Print information about a retore point.\
 
 
 ------------------
@@ -57,10 +56,10 @@ Where ever you clone the repository will act as the base directory for Restore P
 While there are only a few CLI commands, they can be used in a wide variety of complex restoration tasks. Below are some examples of how to use and deploy Pacback in your systems.
 
 ### Using pacback -Syu Instead of pacman -Syu
-One of the problems with rolling releases is you never know when a problem might occur. It may be months before you run into an issue at which point you will need to scramble to figure out when your system was stable last. Pacback offers a specialized command that solves this issue. Pacback will create a Light Restore Point numbered 00 when upgrade, and will then run a full system upgrade. If you run into any issues with the upgrade simply use `pacback --snapback` to instantly downgrade only the packages you upgraded.
+One of the problems with rolling releases is you never know when a problem might occur. It may be months before you run into an issue at which point, you will need to scramble to figure out when your system was stable last. Pacback offers a specialized command that helps solve this issue. Pacback will create a Light Restore Point numbered `00` before every `pacback -Syu` system upgrade. If you run into any issues with the upgrade, simply use `pacback --snapback` to instantly downgrade only the packages you upgraded and remove and additions.
 
 1. Deploy a system upgrade with: `pacback -Syu`
-2. To instantly rollback this update use: `pacback -sb`
+2. Instantly rollback this update using: `pacback -sb`
 
 ![Pacback Snapback](https://i.imgur.com/AX92cfz.gif)
 
@@ -75,7 +74,7 @@ In the following example, I will install Haskell which is a dependency nightmare
 ![Pacback Haskell](https://imgur.com/PzUznWZ.gif)
 
 ### Backup Version Sensitive Application Data
-In some cases, config files many need to be modified when updating packages. You may want to backup this application data before deploying an upgrade incase of error or corruption. Pacback makes it extremely simple to store files like this and automatically compares files that you have stored against the system.  Pacback will let you selectively overwrite each subsection of file type: Changed, Added, and Removed.
+In some cases, config files many need to be modified when updating packages. In other cases, you may want to backup application data before deploying an upgrade incase of error or corruption. Pacback makes it extremely simple to store files like this and will automatically compare files you have stored against your current file system. Once checksumming is complete you can selectively overwrite each subsection of file type: Changed, Added, and Removed.
 
 In this example we pack up an Apache websever and Postgresql database.
 1. `pacback -c 1 -f -d /var/www /etc/httpd /var/lib/postgres/data`
@@ -85,7 +84,7 @@ In this example we pack up an Apache websever and Postgresql database.
 ![Pacback Saving App Data](https://imgur.com/Ag0NROG.gif)
 
 ### Rollback a List of Packages 
-Most issues with an update stem from a single package or a set of related package. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`
+Most issues with an update stem from a single package or a set of related package. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`. Packback searches your file system looking for all versions assoicated with each package package name. When searching for packages be as spesific as possible, since generic names like 'linux' or 'gcc' will apper in many package names.
 
 In this example we selectively rollback 2 packages.
 1. `pacback -pkg typescript electron4`
@@ -93,7 +92,7 @@ In this example we selectively rollback 2 packages.
 ![Pacback Rolling Back a List of Packages](https://imgur.com/Rhy6iDn.gif)
 
 ### Rolling Back to an Archive Date
-Another popular way to rollback package versions is to use the Arch Linux Archives to pull packages with pacman. Pacback automates the entire process with the `pacback -rb` command. To rollback to a specific date, give `-rb` a date in YYYY/MM/DD format and Pacback will automatically save your mirrorlist, point to an archive URL, then run a full system downgrade. When every you are ready to jump back to the head, run `pacback -u` and Pacback with automatically retore your old mirrorlist. In the event that you destroy this backup Pacback can automatically fetch a new mirrorlist for the system.
+Another popular way to rollback package versions is to use the Arch Linux Archives to pull packages with directly with pacman. Pacback automates this entire process with the `pacback -rb` command. To rollback to a specific date, give `-rb` a date in YYYY/MM/DD format and Pacback will automatically save your mirrorlist, point a new mirrorlist to an archive URL, then run a full system downgrade. When every you are ready to jump back to the head, run `pacback -u` and Pacback with automatically retore your old mirrorlist. In the event that you destroy this backup, Pacback can automatically fetch a new HTTP US mirrorlist for the system.
 
 1. `pacback -rb 2019/10/18`
 
