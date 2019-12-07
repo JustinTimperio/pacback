@@ -84,7 +84,7 @@ In this example we pack up an Apache websever and Postgresql database.
 ![Pacback Saving App Data](https://imgur.com/Ag0NROG.gif)
 
 ### Rollback a List of Packages 
-Most issues with an update stem from a single package or a set of related package. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`. Packback searches your file system looking for all versions assoicated with each package package name. When searching for packages be as spesific as possible, since generic names like 'linux' or 'gcc' will apper in many package names.
+Most issues with an update stem from a single package or a set of related package. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`. Packback searches your file system looking for all versions assoicated with each package package name. When searching for a package, be as spesific as possible. Since generic names like 'linux' or 'gcc' apper in many package names, the search may be cluttered with unrelated packages.
 
 In this example we selectively rollback 2 packages.
 1. `pacback -pkg typescript electron4`
@@ -133,7 +133,7 @@ When you fallback on a Full Restore Point, Pacback will unpack the tar and insta
 
 
 ### Metadata Files
-Restore Point metadata files contain information in a human readable format about the system and packages installed on the system at the time of its creation. This information is used by Pacback to restore older versions of packages and provide general information about the Restore Point. Each meta data file will look something like this:
+Restore Point metadata files contain information in a human readable format about packages installed at the time of its creation along with other information. This information is used by Pacback to restore older versions of packages and provide general information about the Restore Point. Each meta data file will look something like this:
 
 > ====== Pacback RP #02 ======  
 Date Created: 2019/12/02  
@@ -147,3 +147,6 @@ aarch64-linux-gnu-binutils 2.33.1-1
 aarch64-linux-gnu-gcc 9.2.0-1  
 aarch64-linux-gnu-glibc 2.30-1  
 aarch64-linux-gnu-linux-api-headers 4.20-1
+......
+....
+..
