@@ -12,6 +12,11 @@ def prChanged(text): print("\u001b[35m{}\033[00m" .format(text))
 def prRemoved(text): print("\033[31m{}\033[00m" .format(text))
 def prAdded(text): print("\033[94m{}\033[00m" .format(text))
 
+def trim_pkg_list(pkg_list):
+    pkg_split = {pkg.split('/')[-1] for pkg in pkg_list} ### Remove Dir Path 
+    pkg_split = {'-'.join(pkg.split('-')[:-1]) for pkg in pkg_split} ### Remove .pkg.tar.xz From Name
+    return pkg_list
+
 #<#><#><#><#><#><#>#<#>#<#
 #+# Create Restore Point
 #<#><#><#><#><#><#>#<#>#<#
@@ -22,7 +27,7 @@ def create_restore_point(rp_num, rp_full, dir_list):
         mkdir(base_dir + '/restore-points', sudo=True)
         open_permissions(base_dir + '/restore-points')
     
-    ### Start For Real Now
+    ### Check for Existing Restore Points
     rp_path = base_dir + '/restore-points/rp' + str(rp_num).zfill(2)
     if os.path.exists(rp_path + '.tar') or os.path.exists(rp_path + '.tar.gz') or os.path.exists(rp_path + '.meta'):
         if not int(rp_num) == 0:
@@ -60,8 +65,7 @@ def create_restore_point(rp_num, rp_full, dir_list):
         ### Ask About Missing Pkgs
         if not found_pkgs == current_pkgs:
             if args.no_confirm == False:
-                pkg_split = {pkg.split('/')[-1] for pkg in found_pkgs} ### Remove Dir Path 
-                pkg_split = {'-'.join(pkg.split('-')[:-1]) for pkg in pkg_split} ### Remove .pkg.tar.xz From Name
+                pkg_split = trim_pkg_list(found_pkgs)
                 prWarning('The Following Packages Where NOT Found!')
                 for pkg in set(current_pkgs - pkg_split):
                     prWarning(pkg + ' Was NOT Found!')
@@ -209,15 +213,18 @@ def rollback_to_rp(rp_num):
         prWorking('Bulk Scanning for ' + str(len(meta_old_pkgs)) + ' Packages...')
         found_pkgs = find_pacman_pkgs({s.strip().replace(' ', '-') for s in changed_pkgs}, find_paccache())
 
+        ### Pass If No Packages Have Changed 
+        if len(changed_pkgs) == 0:
+            prSuccess('No Packages Have Been Upgraded!')
+        
         ### Pass Comparison if All Packages Found
-        if len(found_pkgs) == len(changed_pkgs):
+        elif len(found_pkgs) == len(changed_pkgs):
             prSuccess('All Packages Found In Your Local File System!')
             os.system('sudo pacman -U ' + ' '.join(found_pkgs))
        
         ### Branch if Packages are Missing
         elif len(found_pkgs) < len(changed_pkgs):
-            pkg_split = {pkg.split('/')[-1] for pkg in found_pkgs} ### Remove Dir Path 
-            pkg_split = {'-'.join(pkg.split('-')[:-1]) for pkg in pkg_split} ### Remove .pkg.tar.xz From Name
+            pkg_split = trim_pkg_list(found_pkgs)
             missing_pkg = set({s.strip().replace(' ', '-') for s in changed_pkgs} - pkg_split) 
             
             ### Show Missing Pkgs
@@ -384,22 +391,18 @@ def unlock_rollback():
 #+# Rollback Packages 
 #<#><#><#><#><#><#>#<#>#<#
 def rollback_packages(pkg_list):
+    prWorking('Searching File System for Packages...')
     fs_list = find_paccache()
     for pkg in pkg_list:
         found = find_pacman_pkgs([pkg], fs_list)
         if len(found) > 0:
-            found_split = {pkg.split('/')[-1] for pkg in found} ### Remove Dir Path 
-            found_split = {'-'.join(pkg.split('-')[:-1]) for pkg in found_split} ### Remove .pkg.tar.xz From Name
+            found_pkgs = trim_pkg_list(found_pkgs)
             prSuccess('Pacback Found the Following Package Versions for ' + pkg + ':')
             answer = multi_choice_frame(found_split)
-            print(answer)
-            if answer == None:
-                return
-            else:
-                for x in found:
-                    if re.findall(re.escape(answer), x):
-                        path = x
-                os.system('sudo pacman -U ' + path)
+            for x in found:
+                if re.findall(re.escape(answer), x):
+                    path = x
+            os.system('sudo pacman -U ' + path)
         else:
             prError('No Packages Found Under the Name: ' + pkg)
     
@@ -421,13 +424,14 @@ parser.add_argument("-nc", "--no_confirm", action='store_true', help="Skip askin
 parser.add_argument("-pkg", "--rollback_pkgs", nargs='*', default=[], metavar=('PACKAGE_NAME'), help="Rollback a list of packages looking for old versions on the system.")
 args = parser.parse_args()
 
+
 #<#><#><#><#><#><#>#<#>#<#
 #+# Args Flow Control
 #<#><#><#><#><#><#>#<#>#<#
 base_dir = os.path.dirname(os.path.realpath(__file__))[:-5]
 
 if args.info:
-    if re.findall(r'^([1-9]|0[1-9]|[1-9][0-9])$', args.info):
+    if re.findall(r'^([0-9]|0[1-9]|[1-9][0-9])$', args.info):
         rp = base_dir + '/restore-points/rp' + str(args.info).zfill(2)
         if os.path.exists(rp + '.meta'):
             meta = read_list(rp + '.meta')
@@ -436,7 +440,7 @@ if args.info:
                 print(s)
         
         elif os.path.exists(rp + '.tar') or os.path.exists(rp + '.tar.gz'):
-            prError('No Meta Exists For This Restore Point!')
+            prError('Meta is Missing For This Restore Point!')
         
         else:
             prError('No Restore Point #' + str(args.info).zfill(2) + ' Was NOT Found!')
@@ -466,12 +470,9 @@ elif args.rollback:
 
 elif args.create_rp:
     if re.findall(r'^([1-9]|0[1-9]|[1-9][0-9])$', args.create_rp):
-        if args.full_rp:
-            create_restore_point(args.create_rp, args.full_rp, args.add_dir)
-        else:
-            create_restore_point(args.create_rp, args.full_rp, args.add_dir)
+        create_restore_point(args.create_rp, args.full_rp, args.add_dir)
     else:
-        prError('You Are Missing Arguments! Refer to Documentation for Help.')
+        prError('You Are Missing Arguments Or Are Using a Flag Wrong! Refer to Documentation for Help.')
 
 elif args.unlock_rollback:
     unlock_rollback()

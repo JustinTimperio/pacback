@@ -1,5 +1,5 @@
 # Pacback - Alpha 1.4
-**TLDR: This projects ultimate goal is to provide flexible, portable, and resilient downgrades while still maintaining a slim profile and fast performance.** 
+**TLDR: This projects ultimate goal is to provide flexible and resilient downgrades while still maintaining a slim profile and fast performance.** 
 
 
 ## Abstract:
