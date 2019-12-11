@@ -1,4 +1,7 @@
-# Pacback - Alpha 1.4
+
+# Pacback - Alpha 1.5
+***WARNING: VERSION 1.5 BREAKS COMPATIBLITY WITH FULL RESTORE POINTS GENERATED BEFORE VERSION 1.5***
+
 **TLDR: This projects ultimate goal is to provide flexible and resilient downgrades while still maintaining a slim profile and fast performance.** 
 
 
@@ -64,7 +67,7 @@ One of the problems with rolling releases is you never know when a problem might
 ![Pacback Snapback](https://i.imgur.com/AX92cfz.gif)
 
 ### Simple System Maintenance for Developers
-If you are like me you love to install and test the latest projects the community is working on. The downside of doing this is the slow build-up of packages as you try to remember why that you ever installed a set of packages. To avoid this you can use pacback  to create a restore point then install a bunch of experimental packages you only plan on keeping for a few days. After you're done, simply roll back to the Restore Point and all the packages you installed will be removed. 
+If you are like me you love to install and test the latest projects the community is working on. The downside of doing this is the slow build-up of packages as you try to remember why that you ever installed a set of packages. To avoid this you can use pacback to create a restore point then install a bunch of experimental packages you only plan on keeping for a few days. After you're done, simply roll back to the Restore Point and all the packages you installed will be removed. 
 
 In the following example, I will install Haskell which is a dependency nightmare. After installing it we will show how to quickly uninstall all your changes. 
 1. First, we create a restore point with: `pacback -c 3`
@@ -74,7 +77,7 @@ In the following example, I will install Haskell which is a dependency nightmare
 ![Pacback Haskell](https://imgur.com/PzUznWZ.gif)
 
 ### Backup Version Sensitive Application Data
-In some cases, config files many need to be modified when updating packages. In other cases, you may want to backup application data before deploying an upgrade incase of error or corruption. Pacback makes it extremely simple to store files like this and will automatically compare files you have stored against your current file system. Once checksumming is complete you can selectively overwrite each subsection of file type: Changed, Added, and Removed.
+In some cases, config files many need to be modified when updating packages. In other cases, you may want to backup application data before deploying an upgrade in case of error or corruption. Pacback makes it extremely simple to store files like this and will automatically compare files you have stored against your current file system. Once checksumming is complete you can selectively overwrite each subsection of file type: Changed, Added, and Removed.
 
 In this example we pack up an Apache websever and Postgresql database.
 1. `pacback -c 1 -f -d /var/www /etc/httpd /var/lib/postgres/data`
@@ -84,15 +87,15 @@ In this example we pack up an Apache websever and Postgresql database.
 ![Pacback Saving App Data](https://imgur.com/Ag0NROG.gif)
 
 ### Rollback a List of Packages 
-Most issues with an update stem from a single package or a set of related package. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`. Packback searches your file system looking for all versions assoicated with each package package name. When searching for a package, be as spesific as possible. Since generic names like 'linux' or 'gcc' apper in many package names, the search may be cluttered with unrelated packages.
+Most issues with an update stem from a single package or a set of related package. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`. Packback searches your file system looking for all versions associated with each package name. When searching for a package, be as specific as possible. Since generic names like 'linux' or 'gcc' appear in many package names, the search may be cluttered with unrelated packages.
 
-In this example we selectively rollback 2 packages.
+In this example, we selectively rollback 2 packages.
 1. `pacback -pkg typescript electron4`
 
 ![Pacback Rolling Back a List of Packages](https://imgur.com/Rhy6iDn.gif)
 
 ### Rolling Back to an Archive Date
-Another popular way to rollback package versions is to use the Arch Linux Archives to pull packages with directly with pacman. Pacback automates this entire process with the `pacback -rb` command. To rollback to a specific date, give `-rb` a date in YYYY/MM/DD format and Pacback will automatically save your mirrorlist, point a new mirrorlist to an archive URL, then run a full system downgrade. When every you are ready to jump back to the head, run `pacback -u` and Pacback with automatically retore your old mirrorlist. In the event that you destroy this backup, Pacback can automatically fetch a new HTTP US mirrorlist for the system.
+Another popular way to rollback package versions is to use the Arch Linux Archives to pull packages directly with pacman. Pacback automates this entire process with the `pacback -rb` command. To rollback to a specific date, give `-rb` a date in YYYY/MM/DD format and Pacback will automatically save your mirrorlist, point a new mirrorlist to an archive URL, then run a full system downgrade. When every you are ready to jump back to the head, run `pacback -u` and Pacback with automatically retore your old mirrorlist. In the event that you destroy this backup, Pacback can automatically fetch a new HTTP US mirrorlist for the system.
 
 1. `pacback -rb 2019/10/18`
 
@@ -113,24 +116,27 @@ By default, Pacback creates a Light Restore Point which consists of only a .meta
 
 **Light Restore Point Disadvantages:**
  - Light RP's Will Fail to Provide Real Value If Old Package Versions Are Removed (aka. paccahe -r)
- - Light RP's Are Not Portable
 
 ### Full Restore Points
-When a Full Restore Point is used, Pacback searches through your file system looking for each package version installed. Pacback then creates a Restore Point tar which contains all the compiled packages installed on the system at the time of its creation, along with any additional files the user specifies. Full Restore Points also generate a metadata file but even if you lose or delete this file, you will still be able to run a full system recovery and pacback will simply skip its more advanced features. 
+When a Full Restore Point is used, Pacback searches through your file system looking for each package version installed. Pacback then creates a Restore Point folder which contains a hardlink to each compiled package installed on the system at the time of its creation, along with any additional files the user specifies.  Since each package is a hardlinked to an inode, a package can be referenced an infinite number of times without duplication. A package will not be fully deleted from the system until all links to the inode are removed. This also provides light restore points additional resilience as they can search full restore points for the packages they need.
 
-When you fallback on a Full Restore Point, Pacback will unpack the tar and install all the packages contained within. It will also give you the ability to remove any new packages added since its creation. Once this is complete, if you have packed any config files into the restore point, Pacback with checksum each file and compare it to your file system. Pacback will then let you selectively overwrite each subsection of file type: Changed, Added, and Removed.
+
+![https://i.imgur.com/eikZF2g.jpg](https://i.imgur.com/eikZF2g.jpg)
+
+Full Restore Points also generate a metadata file but even if you lose or delete this file, you will still be able to run a full system rollback and pacback will simply skip its more advanced features. When you fallback on a Full Restore Point, Pacback runs its normal package checks giving you the ability rollback packages and remove any new packages added since its creation. Once this is complete, if you have any config files saved, Pacback with checksum each file and compare it to your file system. Pacback will then let you selectively overwrite each subsection of file type: Changed, Added, and Removed.
 
 **Full Restore Point Advantages:**
  - Full RP's Are 100% Self Contained
  - Adding Custom Directories Allows for the Rollback of Config Files Associated with New Versions
- - Full RP's are Portable and Can Be Used to Deploy Staged Updates to Servers
- - Full RP's Can Backup Entire Systems and Applications
+ - Full RP's Ensure That Packages Are Not Prematurely Removed
+ - Provides Light Restore Points Additional Resilience
 
 **Full Restore Point Disadvantages:**
- - Full RP's Are Large
- - Full RP's Create Duplicate Copies of Complied Packages Already Present in the Cache or in Other RP's
- - Full RP's are IO Bound During Compression and Decompression
+- Hardlinking Packages Can Take A Long Time
+- The Addition of Thousands of Duplicate File Names Requires Pacback to Use Costly Duplication Filters
+-  Full RP's Don't Protect Against Inode Corruption
 
+------------------
 
 ### Metadata Files
 Restore Point metadata files contain information in a human readable format about packages installed at the time of its creation along with other information. This information is used by Pacback to restore older versions of packages and provide general information about the Restore Point. Each meta data file will look something like this:
@@ -147,6 +153,24 @@ aarch64-linux-gnu-binutils 2.33.1-1
 aarch64-linux-gnu-gcc 9.2.0-1  
 aarch64-linux-gnu-glibc 2.30-1  
 aarch64-linux-gnu-linux-api-headers 4.20-1
-......
-....
-..
+
+------------------
+
+## Feature Path, Known Bugs, Issues, and Limitations
+This list is likely to have many changes and edits as new versions are released. Please read this carefully when updating versions or deploying pacback to new systems.
+
+### Issues:
+- **Pacback Skips Checksumming Files over 1GB.** - This is done for a number of reasons, first of which is that python sucks at this. I mean its god awful at reading large files. In my testing checksumming took 30x-50x longer compared to a terminal equivalent. The second reason large files are skipped is that this it is outside of Pacback's use-case. Packaging directories is intended for saving the state of potentially thousands of small configuration files, not large iso's or archives. 
+
+- **Pacback Creates Missing Directories as Root.** - Currently files are copied out of the restore point with the exact same permissions they went in with. The issue here is the creation of missing directories. When Pacback creates these directories the original permissions are not copied. 
+
+### Feature Path:
+- [ ] Version Checking 
+- [ ]  Pacman Hook
+- [ ] Impoved Searches for Individual Packages
+- [ ] Fix Checksumming
+- [ ] Fix Directory Creation
+- [ ] Better Color Output
+- [ ] Arch Archive Support for Singular Package Versions
+- [ ] Faster Package Searches
+- [ ] Improve Internal Documentation
