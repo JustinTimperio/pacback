@@ -30,25 +30,25 @@ I love Arch Linux and rolling-release distros. Being at the head of Linux kernel
 ## Pacback-CLI Commands and Flags:
 Pacback offers a few core commands that streamline the process of creating and restoring versions. The CLI is designed to be dead simple and provide detailed feedback and user control.
 
--sb, --snapback | Rollback packages to the version state stored before that last pacback upgrade.\
+* -sb, --snapback | Rollback packages to the version state stored before that last pacback upgrade.\
 **Example: `pacback --snapback`**\
--rb, --rollback | Rollback to a previously generated restore point or to an archive date.\
+* -rb, --rollback | Rollback to a previously generated restore point or to an archive date.\
 **Example: `pacback --rollback 1` or `pacback --rollback 2019/08/14`**\
--Syu, --upgrade | Create a light restore point and run a full system upgrade. Use snapback to restore this version state.\
+* -Syu, --upgrade | Create a light restore point and run a full system upgrade. Use snapback to restore this version state.\
 **Example: `pacback -Syu`**\
--c, --create_rp | Generate a pacback restore point. Takes a restore point # as an argument.\
+* -c, --create_rp | Generate a pacback restore point. Takes a restore point # as an argument.\
 **Example: `pacback -c 1`**\
--f, --full_rp | Generate a pacback full restore point.\
+* -f, --full_rp | Generate a pacback full restore point.\
 **Example: `pacback -f -c 1`**\
--pkg, --rollback_pkgs | - Rollback a list of packages looking for old versions on the system.\
+* -pkg, --rollback_pkgs | - Rollback a list of packages looking for old versions on the system.\
 **Example: `pacback -pkg package_1 package_2 package_3`**\
--d, --add_dir | Add any custom directories to your restore point during a `--create_rp AND --full_rp`.\
+* -d, --add_dir | Add any custom directories to your restore point during a `--create_rp AND --full_rp`.\
 **Example: `pacback -f -c 1 -d /dir1/to/add /dir2/to/add /dir3/to/add`**\
--nc, --no_confirm | Skip asking user questions during RP creation. Will answer yes to all.\
+* -nc, --no_confirm | Skip asking user questions during RP creation. Will answer yes to all.\
 **Example: `pacback -nc -c 1`**\
--u, --unlock_rollback -| Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.\
+* -u, --unlock_rollback -| Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.\
 **Example: `pacback --unlock_rollback`**\
--i, --info | Print information about a retore point.\
+* -i, --info | Print information about a retore point.\
 **Example: `pacback --info 1`**
 
 
@@ -171,7 +171,7 @@ This list is likely to have many changes and edits as new versions are released.
 
 - **Pacback Creates Missing Directories as Root.** - Currently files are copied out of the restore point with the exact same permissions they went in with. The issue here is the creation of missing directories. When Pacback creates these directories the original permissions are not copied. 
 
-- **My Full Restore Points Are No Longer Compatiable.** - This is because I have completely rewored Full Restore Points to be massively more effecient. I'm working on a way to convert these older restore points.
+- **My Full Restore Points Are No Longer Compatiable.** - This is because I have completely reworked Full Restore Points to be massively more effecient. I'm working on a way to convert these older restore points.
 
 ### Feature Path:
 - [ ] Version Checking
