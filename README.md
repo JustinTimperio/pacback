@@ -31,23 +31,23 @@ I love Arch Linux and rolling-release distros. Being at the head of Linux kernel
 Pacback offers a few core commands that streamline the process of creating and restoring versions. The CLI is designed to be dead simple and provide detailed feedback and user control.
 
 * -sb, --snapback | Rollback packages to the version state stored before that last pacback upgrade.\
-**Example: `pacback --snapback`**\
+**Example: `pacback --snapback`**
 * -rb, --rollback | Rollback to a previously generated restore point or to an archive date.\
-**Example: `pacback --rollback 1` or `pacback --rollback 2019/08/14`**\
+**Example: `pacback --rollback 1` or `pacback --rollback 2019/08/14`**
 * -Syu, --upgrade | Create a light restore point and run a full system upgrade. Use snapback to restore this version state.\
-**Example: `pacback -Syu`**\
+**Example: `pacback -Syu`**
 * -c, --create_rp | Generate a pacback restore point. Takes a restore point # as an argument.\
-**Example: `pacback -c 1`**\
+**Example: `pacback -c 1`**
 * -f, --full_rp | Generate a pacback full restore point.\
-**Example: `pacback -f -c 1`**\
+**Example: `pacback -f -c 1`**
 * -pkg, --rollback_pkgs | - Rollback a list of packages looking for old versions on the system.\
-**Example: `pacback -pkg package_1 package_2 package_3`**\
+**Example: `pacback -pkg package_1 package_2 package_3`**
 * -d, --add_dir | Add any custom directories to your restore point during a `--create_rp AND --full_rp`.\
-**Example: `pacback -f -c 1 -d /dir1/to/add /dir2/to/add /dir3/to/add`**\
+**Example: `pacback -f -c 1 -d /dir1/to/add /dir2/to/add /dir3/to/add`**
 * -nc, --no_confirm | Skip asking user questions during RP creation. Will answer yes to all.\
-**Example: `pacback -nc -c 1`**\
+**Example: `pacback -nc -c 1`**
 * -u, --unlock_rollback -| Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.\
-**Example: `pacback --unlock_rollback`**\
+**Example: `pacback --unlock_rollback`**
 * -i, --info | Print information about a retore point.\
 **Example: `pacback --info 1`**
 
