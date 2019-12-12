@@ -1,8 +1,15 @@
 
 # Pacback - Alpha 1.5
-***WARNING: VERSION 1.5 BREAKS COMPATIBLITY WITH FULL RESTORE POINTS GENERATED BEFORE VERSION 1.5***
+**TLDR: This projects ultimate goal is to provide flexible and resilient downgrades while still maintaining a slim profile and fast performance.**
 
-**TLDR: This projects ultimate goal is to provide flexible and resilient downgrades while still maintaining a slim profile and fast performance.** 
+***WARNING: V1.5 BREAKS COMPATIBLITY WITH FULL RESTORE POINTS GENERATED BEFORE V1.5***
+### Index
+1. [CLI Commands](https://github.com/JustinTimperio/pacback#pacback-cli-commands-and-flags)
+2. [Install](https://github.com/JustinTimperio/pacback#install-instructions)
+3. [Examples](https://github.com/JustinTimperio/pacback#pacback-usage-examples)
+4. [Pacback's Design](https://github.com/JustinTimperio/pacback#pacbacks-design)
+5. [Feature Path and Bugs](https://github.com/JustinTimperio/pacback#feature-path-known-bugs-issues-and-limitations)
+ 
 
 
 ## Abstract:
@@ -138,7 +145,7 @@ Full Restore Points also generate a metadata file but even if you lose or delete
 
 ------------------
 
-### Metadata Files
+## Metadata Files
 Restore Point metadata files contain information in a human readable format about packages installed at the time of its creation along with other information. This information is used by Pacback to restore older versions of packages and provide general information about the Restore Point. Each meta data file will look something like this:
 
 > ====== Pacback RP #02 ======  
@@ -164,13 +171,18 @@ This list is likely to have many changes and edits as new versions are released.
 
 - **Pacback Creates Missing Directories as Root.** - Currently files are copied out of the restore point with the exact same permissions they went in with. The issue here is the creation of missing directories. When Pacback creates these directories the original permissions are not copied. 
 
+- **My Full Restore Points Are No Longer Compatiable.** - This is because I have completely rewored Full Restore Points to be massively more effecient. I'm working on a way to convert these older restore points.
+
 ### Feature Path:
-- [ ] Version Checking 
-- [ ]  Pacman Hook
+- [ ] Version Checking
+- [ ] Version Migration
+- [ ] Improved Cache Cleaning (A better paccache -c)
+- [ ] Pacman Hook
 - [ ] Impoved Searches for Individual Packages
 - [ ] Fix Checksumming
 - [ ] Fix Directory Creation
 - [ ] Better Color Output
+- [ ] AUR Package
 - [ ] Arch Archive Support for Singular Package Versions
 - [ ] Faster Package Searches
 - [ ] Improve Internal Documentation
