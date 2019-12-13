@@ -1,13 +1,9 @@
 #! /usr/bin/env python3
 #### A utility for marking and restoring stable arch packages
-version = '1.5.0'
+version = '1.5.1'
 from python_scripts import *
+from pac_utils import *
 import tqdm, argparse
-
-def trim_pkg_list(pkg_list):
-    pkg_split = {pkg.split('/')[-1] for pkg in pkg_list} ### Remove Dir Path
-    pkg_split = {'-'.join(pkg.split('-')[:-1]) for pkg in pkg_split} ### Remove .pkg.tar.xz From Name
-    return pkg_split
 
 #<#><#><#><#><#><#>#<#>#<#
 #+# Create Restore Point
@@ -49,7 +45,7 @@ def create_restore_point(rp_num, rp_full, dir_list):
 
         ### Search File System for Pkgs
         prWorking('Bulk Scanning for ' + str(len(current_pkgs)) + ' Packages...')
-        found_pkgs = fetch_pacman_pkgs(current_pkgs, fetch_paccache())
+        found_pkgs = search_paccache(current_pkgs, fetch_paccache())
 
         ### Get Size of Pkgs Found
         for p in found_pkgs:
@@ -110,11 +106,12 @@ def create_restore_point(rp_num, rp_full, dir_list):
     import datetime as dt
     current_pkgs = pacman_Q()
     meta_list = ['====== Pacback RP #'+ str(rp_num).zfill(2) +' ======',
+                 'Pacback Version: ' + version,
                  'Date Created: ' + dt.datetime.now().strftime("%Y/%m/%d"),
                  'Packages Installed: ' + str(len(current_pkgs)),
                  'Packages in RP: ' + str(len(found_pkgs)),
                  'Size of Packages in RP: ' + str(convert_size(pac_size)),
-                 'Pacback Version: ' + version]
+                 ]
     if not len(dir_list) == 0:
         dir_meta = ['Dirs File Count: '+ str(len(rp_files)),
                     'Dirs Total Size: '+ str(convert_size(dir_size)),
@@ -143,11 +140,7 @@ def rollback_to_rp(rp_num):
     rp_tar = rp_path + '/' + str(rp_num).zfill(2) + '_dirs.tar'
     rp_meta = rp_path + '.meta'
     current_pkgs = pacman_Q()
-
-    ### Check if Old Version
-    if os.path.exists(rp_path + '.tar') or os.path.exists(rp_path + '.tar.gz'):
-        return prError('Full Restore Points Generated Before Version 1.5.0 Are No Longer Compatible With Newer Versions of Pacback!')
-    
+   
     ### Set Full RP Status
     if os.path.exists(rp_path):
         full_rp = True
@@ -160,6 +153,14 @@ def rollback_to_rp(rp_num):
         meta = read_list(rp_meta)
         meta_dirs = read_between('========= Dir List =========','======= Pacman List ========', meta)[:-1]
         meta_old_pkgs = read_between('======= Pacman List ========','<Endless>', meta)
+        for m in meta:
+            if m.split(':')[0] == 'Pacback Version':
+                target_version = m.split(':')[1]
+                break
+        con = check_pacback_version(version, rp_path, target_version)
+        if con == False:
+            return prError('Aborting Due to Version Issues!')
+
 
         ### Checking for New and Changed Packages
         changed_pkgs = set(set(meta_old_pkgs) - current_pkgs)
@@ -171,6 +172,9 @@ def rollback_to_rp(rp_num):
         added_pkgs = None
         meta_old_pkgs = None
         changed_pkgs = None
+        con = check_pacback_version(version, rp_path)
+        if con == False:
+            return prError('Aborting Due to Version Issues!')
 
     ### Abort if No Files Found
     if meta_exists == False and full_rp == False:
@@ -187,7 +191,7 @@ def rollback_to_rp(rp_num):
             if len(changed_pkgs) == 0:
                 prSuccess('No Packages Have Been Upgraded!')
             else:
-                found_pkgs = fetch_pacman_pkgs({s.strip().replace(' ', '-') for s in changed_pkgs}, search_fs(rp_cache, typ='set'))
+                found_pkgs = search_paccache({s.strip().replace(' ', '-') for s in changed_pkgs}, search_fs(rp_cache, typ='set'))
                 os.system('sudo pacman -U ' + ' '.join(found_pkgs))
 
         elif meta_exists == False:
@@ -200,7 +204,7 @@ def rollback_to_rp(rp_num):
         ### Light Restore Point ###
         ###########################
         prWorking('Bulk Scanning for ' + str(len(meta_old_pkgs)) + ' Packages...')
-        found_pkgs = fetch_pacman_pkgs({s.strip().replace(' ', '-') for s in changed_pkgs}, fetch_paccache())
+        found_pkgs = search_paccache({s.strip().replace(' ', '-') for s in changed_pkgs}, fetch_paccache())
 
         ### Pass If No Packages Have Changed
         if len(changed_pkgs) == 0:
@@ -214,11 +218,11 @@ def rollback_to_rp(rp_num):
         ### Branch if Packages are Missing
         elif len(found_pkgs) < len(changed_pkgs):
             prWarning('Packages Are Missing! Extenting Package Search...')
-            found_pkgs = fetch_pacman_pkgs({s.strip().replace(' ', '-') for s in changed_pkgs}, fetch_paccache(base_dir + '/restore-points'))
+            found_pkgs = search_paccache({s.strip().replace(' ', '-') for s in changed_pkgs}, fetch_paccache(base_dir + '/restore-points'))
             if len(found_pkgs) == len(changed_pkgs):
                 prSuccess('All Packages Found In Your Local File System!')
                 os.system('sudo pacman -U ' + ' '.join(found_pkgs))
-            
+
             else:
                 pkg_split = trim_pkg_list(found_pkgs)
                 missing_pkg = set({s.strip().replace(' ', '-') for s in changed_pkgs} - pkg_split)
@@ -247,117 +251,7 @@ def rollback_to_rp(rp_num):
         return prSuccess('Rollback to Restore Point #' + str(rp_num).zfill(2) + ' Complete!')
 
     else:
-        custom_dirs = rp_tar[:-4]
-        ### Decompress if .gz
-        if os.path.exists(rp_tar + '.gz'):
-            prWorking('Decompressing Restore Point....')
-            if any(re.findall('pigz', line.lower()) for line in current_pkgs):
-                os.system('pigz -d ' + rp_tar + '.gz -f') ### Decompress With pigz
-            else:
-                gz_d(rp_tar + '.gz') ### Decompress with Python
-
-        ### Remove if Custom Dirs Unpacked
-        if os.path.exists(custom_dirs):
-            shutil.rmtree(custom_dirs)
-
-        ### Untar RP
-        prWorking('Unpacking Files from Restore Point Tar....')
-        untar_dir(rp_tar)
-
-        diff_yn = yn_frame('Do You Want to Checksum Diff Restore Point Files Against Your Current File System?')
-        if diff_yn == False:
-            print('Skipping Diff!')
-            pass
-
-        elif diff_yn == True:
-            import multiprocessing as mp
-            rp_fs = search_fs(custom_dirs)
-            rp_fs_trim = set(path[len(custom_dirs):] for path in search_fs(custom_dirs))
-
-            ### Checksum Restore Point Files with a MultiProcessing Pool
-            with mp.Pool(os.cpu_count()) as pool:
-                rp_checksum = set(tqdm.tqdm(pool.imap(checksum_file, rp_fs),
-                                total=len(rp_fs), desc='Checksumming Restore Point Files'))
-                sf_checksum = set(tqdm.tqdm(pool.imap(checksum_file, rp_fs_trim),
-                                total=len(rp_fs_trim), desc='Checksumming Source Files'))
-
-            ### Compare Checksums For Files That Exist
-            rp_csum_trim = set(path[len(custom_dirs):] for path in rp_checksum)
-            rp_diff = sf_checksum.difference(rp_csum_trim)
-
-            ### Filter Removed and Changed Files
-            diff_removed = set()
-            diff_changed = set()
-            for csum in rp_diff:
-                if re.findall('FILE MISSING', csum):
-                    diff_removed.add(csum)
-                else:
-                    diff_changed.add(csum.split(' : ')[0] + ' : FILE CHANGED!')
-
-            ### Find Added Files
-            src_fs = set()
-            for x in meta_dirs:
-                for l in search_fs(x):
-                    src_fs.add(l)
-            diff_new = src_fs.difference(rp_fs_trim)
-
-            ### Print Changed Files For User
-            if len(diff_changed) + len(diff_new) + len(diff_removed) == 0:
-                shutil.rmtree(custom_dirs)
-                return prSuccess('No Files Have Been Changed!')
-
-    #######################
-    ### Overwrite Files ###
-    #######################
-    if diff_yn == False:
-        prWarning('YOU HAVE NOT CHECKSUMED THE RESTORE POINT! OVERWRITING ALL FILES CAN BE EXTREAMLY DANGOURS!')
-        ow = yn_frame('Do You Still Want to Continue and Restore ALL Files In the Restore Point?')
-        if ow == False:
-            return print('Skipping Automatic File Restore! Restore Point Files Are Unpacked in ' + custom_dirs)
-
-        elif ow == True:
-            print('Starting Full File Restore! Please Be Patient As All Files are Overwritten...')
-            rp_fs = search_fs(custom_dirs)
-            for f in rp_fs:
-                prWorking('Please Be Patient. This May Take a While...')
-                os.system('sudo mkdir -p ' + escape_bash('/'.join(f.split('/')[:-1])) + ' && sudo cp -af ' + escape_bash(f) + ' ' + escape_bash(f[len(custom_dirs):]))
-
-    elif diff_yn == True:
-        ow = yn_frame('Do You Want to Automaticly Restore Changed and Missing Files?')
-        if ow == False:
-            return print('Skipping Automatic Restore! Restore Point Files Are Unpacked in ' + custom_dirs)
-
-        if ow == True:
-            if len(diff_changed) > 0:
-                prWarning('The Following Files Have Changed:')
-                for f in diff_changed:
-                    prChanged(f)
-                if yn_frame('Do You Want to Overwrite Files That Have Been CHANGED?') == True:
-                    prWorking('Please Be Patient. This May Take a While...')
-                    for f in diff_changed:
-                        fs = (f.split(' : ')[0])
-                        os.system('sudo cp -af ' + escape_bash(custom_dirs + fs) + ' ' + escape_bash(fs))
-
-            if len(diff_removed) > 0:
-                prWarning('The Following Files Have Removed:')
-                for f in diff_removed:
-                    prRemoved(f)
-                if yn_frame('Do You Want to Add Files That Have Been REMOVED?') == True:
-                    prWorking('Please Be Patient. This May Take a While...')
-                    for f in diff_removed:
-                        fs = (f.split(' : ')[0])
-                        os.system('sudo mkdir -p ' + escape_bash('/'.join(fs.split('/')[:-1])) + ' && sudo cp -af ' + escape_bash(custom_dirs + fs) + ' ' + escape_bash(fs))
-
-            if len(diff_new) > 0:
-                for f in diff_new:
-                    prAdded(f + ' : NEW FILE!')
-                if yn_frame('Do You Want to Remove Files That Have Beend ADDED?') == True:
-                    prWorking('Please Be Patient. This May Take a While...')
-                    for f in diff_new:
-                        fs = (f.split(' : ')[0])
-                        os.system('sudo rm ' + fs)
-    shutil.rmtree(custom_dirs)
-    prSuccess('File Restore Complete!')
+        diff_rp_files(rp_tar, meta_dirs, current_pkgs)
 
 
 #<#><#><#><#><#><#>#<#>#<#
@@ -411,7 +305,7 @@ def rollback_packages(pkg_list):
     prWorking('Searching File System for Packages...')
     fs_list = fetch_paccache(base_dir + '/restore-points')
     for pkg in pkg_list:
-        found = fetch_pacman_pkgs([pkg], fs_list)
+        found = search_paccache([pkg], fs_list)
         if len(found) > 0:
             found_pkgs = trim_pkg_list(found_pkgs)
             prSuccess('Pacback Found the Following Package Versions for ' + pkg + ':')
@@ -429,16 +323,20 @@ def rollback_packages(pkg_list):
 #<#><#><#><#><#><#>#<#>#<#
 
 parser = argparse.ArgumentParser(description="A reliable rollback utility for marking and restoring custom save points in Arch Linux.")
-parser.add_argument("-sb", "--snapback", action='store_true', help="Rollback packages to the version state stored before that last pacback upgrade.")
-parser.add_argument("-rb", "--rollback", metavar=('RP# or YYYY/MM/DD'), help="Rollback to a previously generated restore point or to an archive date.")
+#### Pacback -Syu
 parser.add_argument("-Syu", "--upgrade", action='store_true', help="Create a light restore point and run a full system upgrade. Use snapback to restore this version state.")
+parser.add_argument("-sb", "--snapback", action='store_true', help="Rollback packages to the version state stored before that last pacback upgrade.")
+#### Base RP Functions
+parser.add_argument("-rb", "--rollback", metavar=('RP# or YYYY/MM/DD'), help="Rollback to a previously generated restore point or to an archive date.")
+parser.add_argument("-pkg", "--rollback_pkgs", nargs='*', default=[], metavar=('PACKAGE_NAME'), help="Rollback a list of packages looking for old versions on the system.")
 parser.add_argument("-c", "--create_rp", metavar=('RP#'), help="Generate a pacback restore point. Takes a restore point # as an argument.")
 parser.add_argument("-f", "--full_rp", action='store_true', help="Generate a pacback full restore point.")
 parser.add_argument("-d", "--add_dir", nargs='*', default=[], metavar=('/PATH'), help="Add any custom directories to your restore point during a `--create_rp AND --full_rp`.")
 parser.add_argument("-u", "--unlock_rollback", action='store_true', help="Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.")
+#### Utils
 parser.add_argument("-i", "--info", metavar=('RP#'), help="Print information about a retore point.")
 parser.add_argument("-nc", "--no_confirm", action='store_true', help="Skip asking user questions during RP creation. Will answer yes to all.")
-parser.add_argument("-pkg", "--rollback_pkgs", nargs='*', default=[], metavar=('PACKAGE_NAME'), help="Rollback a list of packages looking for old versions on the system.")
+parser.add_argument("-v", "--version", action='store_true', help="Display Pacback Version.")
 args = parser.parse_args()
 
 
@@ -447,7 +345,10 @@ args = parser.parse_args()
 #<#><#><#><#><#><#>#<#>#<#
 base_dir = os.path.dirname(os.path.realpath(__file__))[:-5]
 
-if args.info:
+if args.version:
+    print('Pacback Version: ' + version)
+
+elif args.info:
     if re.findall(r'^([0-9]|0[1-9]|[1-9][0-9])$', args.info):
         rp = base_dir + '/restore-points/rp' + str(args.info).zfill(2)
         if os.path.exists(rp + '.meta'):

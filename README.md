@@ -174,8 +174,8 @@ This list is likely to have many changes and edits as new versions are released.
 - **My Full Restore Points Are No Longer Compatiable.** - This is because I have completely reworked Full Restore Points to be massively more effecient. I'm working on a way to convert these older restore points.
 
 ### Feature Path:
-- [ ] Version Checking
-- [ ] Version Migration
+- [x] Version Checking
+- [x] Version Migration
 - [ ] Improved Cache Cleaning (A better paccache -c)
 - [ ] Pacman Hook
 - [ ] Impoved Searches for Individual Packages
