@@ -82,12 +82,13 @@ def check_pacback_version(current_version, rp_path, target_version='nil'):
 
         ### Check for Full RP's Created Before V1.5
         if tv_major == 1 and tv_minor < 5:
-            prError('Full Restore Points Generated Before V1.5.0 Are No Longer Compatible With Newer Versions of Pacback!')
-            upgrade = yn_frame('Do You Want to Upgrade This Restore Point?')
-            if upgrade == True:
-                upgrade_to_hardlinks(rp_path)
-            else:
-                return False
+            if os.path.exists(rp_path + '.tar') or os.path.exists(rp_path + '.tar.gz'):
+                prError('Full Restore Points Generated Before V1.5.0 Are No Longer Compatible With Newer Versions of Pacback!')
+                upgrade = yn_frame('Do You Want to Upgrade This Restore Point?')
+                if upgrade == True:
+                    upgrade_to_hardlinks(rp_path)
+                else:
+                    return False
 
 def upgrade_to_hardlinks(rp_path):
     ### This is a Total Hack Job. Don't Judge Me :(
