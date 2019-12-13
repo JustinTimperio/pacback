@@ -2,7 +2,6 @@
 # Pacback - Alpha 1.5
 **TLDR: This projects ultimate goal is to provide flexible and resilient downgrades while still maintaining a slim profile and fast performance.**
 
-***WARNING: V1.5 BREAKS COMPATIBLITY WITH FULL RESTORE POINTS GENERATED BEFORE V1.5***
 ### Index
 1. [CLI Commands](https://github.com/JustinTimperio/pacback#pacback-cli-commands-and-flags)
 2. [Install](https://github.com/JustinTimperio/pacback#install-instructions)
@@ -171,7 +170,7 @@ This list is likely to have many changes and edits as new versions are released.
 
 - **Pacback Creates Missing Directories as Root.** - Currently files are copied out of the restore point with the exact same permissions they went in with. The issue here is the creation of missing directories. When Pacback creates these directories the original permissions are not copied. 
 
-- **My Full Restore Points Are No Longer Compatiable.** - This is because I have completely reworked Full Restore Points to be massively more effecient. I'm working on a way to convert these older restore points.
+- ~~**My Full Restore Points Are No Longer Compatiable.** - This is because I have completely reworked Full Restore Points to be massively more effecient. I'm working on a way to convert these older restore points.~~
 
 ### Feature Path:
 - [x] Version Checking
