@@ -2,14 +2,13 @@
 # Pacback - Alpha 1.5
 **TLDR: This projects ultimate goal is to provide flexible and resilient downgrades while still maintaining a slim profile and fast performance.**
 
-### Index
+### Index:
 1. [CLI Commands](https://github.com/JustinTimperio/pacback#pacback-cli-commands-and-flags)
 2. [Install](https://github.com/JustinTimperio/pacback#install-instructions)
 3. [Examples](https://github.com/JustinTimperio/pacback#pacback-usage-examples)
 4. [Pacback's Design](https://github.com/JustinTimperio/pacback#pacbacks-design)
 5. [Feature Path and Bugs](https://github.com/JustinTimperio/pacback#feature-path-known-bugs-issues-and-limitations)
  
-
 
 ## Abstract:
 I love Arch Linux and rolling-release distros. Being at the head of Linux kernel and application development means access to the latest features and bug fixes. This also often means dealing with the latest bugs. While I don't run into major bugs often, when they happen, they cripple my productivity.  Manually reversing individual packages is generally a slow and manual process. While some tools exist, none meet my needs. In particular, support for rolling back AUR packages is extremely lacking.  
@@ -29,26 +28,40 @@ I love Arch Linux and rolling-release distros. Being at the head of Linux kernel
 ## Pacback-CLI Commands and Flags:
 Pacback offers a few core commands that streamline the process of creating and restoring versions. The CLI is designed to be dead simple and provide detailed feedback and user control.
 
-* -sb, --snapback | Rollback packages to the version state stored before that last pacback upgrade.\
-**Example: `pacback --snapback`**
-* -rb, --rollback | Rollback to a previously generated restore point or to an archive date.\
-**Example: `pacback --rollback 1` or `pacback --rollback 2019/08/14`**
-* -Syu, --upgrade | Create a light restore point and run a full system upgrade. Use snapback to restore this version state.\
-**Example: `pacback -Syu`**
+### Core Commands
 * -c, --create_rp | Generate a pacback restore point. Takes a restore point # as an argument.\
 **Example: `pacback -c 1`**
 * -f, --full_rp | Generate a pacback full restore point.\
 **Example: `pacback -f -c 1`**
+* -rb, --rollback | Rollback to a previously generated restore point or to an archive date.\
+**Example: `pacback --rollback 1` or `pacback --rollback 2019/08/14`**
+* -Syu, --upgrade | Create a light restore point and run a full system upgrade. Use snapback to restore this version state.\
+**Example: `pacback -Syu`**
+* -sb, --snapback | Rollback packages to the version state stored before that last pacback upgrade.\
+**Example: `pacback --snapback`**
 * -pkg, --rollback_pkgs | - Rollback a list of packages looking for old versions on the system.\
 **Example: `pacback -pkg package_1 package_2 package_3`**
+* -u, --unlock_rollback | Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.\
+**Example: `pacback --unlock_rollback`**
+
+### Flags and Utils
+* -rm, --clean | Clean old and orphaned pacakages along with old Restore Points. Provide the number of package you want keep.\
+**Example: `pacback -rm 3`**
 * -d, --add_dir | Add any custom directories to your restore point during a `--create_rp AND --full_rp`.\
 **Example: `pacback -f -c 1 -d /dir1/to/add /dir2/to/add /dir3/to/add`**
 * -nc, --no_confirm | Skip asking user questions during RP creation. Will answer yes to all.\
 **Example: `pacback -nc -c 1`**
-* -u, --unlock_rollback -| Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.\
-**Example: `pacback --unlock_rollback`**
+* -n, --notes | Add Custom Notes to Your Metadata File.\
+**Example: `pacback -nc -c 1 -f -n 'Here Are Some Notes'`**
+* -ih, --install_hook | Install a Pacman hook that creates a snapback restore point during each Pacman upgrade.\
+**Example: `pacback --install_hook`**
+* -rh, --remove_hook | "Remove the Pacman hook that creates a snapback restore point during each Pacman upgrade.\
+**Example: `pacback --remove_hook`**
 * -i, --info | Print information about a retore point.\
 **Example: `pacback --info 1`**
+* -v, --version | Display Pacback Version.\
+**Example: `pacback -v`**
+
 
 
 ------------------
@@ -56,7 +69,7 @@ Pacback offers a few core commands that streamline the process of creating and r
 ## Install Instructions:
 Where ever you clone the repository will act as the base directory for Restore Points.
 1. `git clone --recurse-submodules https://github.com/JustinTimperio/pacback.git`
-2. `pacman -S python-tqdm`
+2. `pacman -S python-tqdm arch-install-scripts`
 3. `sudo ln -s /dir/to/pacback/core/pacback.py /usr/bin/pacback`
 
 ------------------
@@ -64,9 +77,14 @@ Where ever you clone the repository will act as the base directory for Restore P
 ## Pacback Usage Examples:
 While there are only a few CLI commands, they can be used in a wide variety of complex restoration tasks. Below are some examples of how to use and deploy Pacback in your systems.
 
-### Using pacback -Syu Instead of pacman -Syu
-One of the problems with rolling releases is you never know when a problem might occur. It may be months before you run into an issue at which point, you will need to scramble to figure out when your system was stable last. Pacback offers a specialized command that helps solve this issue. Pacback will create a Light Restore Point numbered `00` before every `pacback -Syu` system upgrade. If you run into any issues with the upgrade, simply use `pacback --snapback` to instantly downgrade only the packages you upgraded and remove and additions.
+### FailProof -Syu Upgrades
+One of the problems with rolling releases is you never know when a problem might occur. It may be months before you run into an issue at which point, you will need to scramble to figure out when your system was stable last. Pacback offers two solutions that help solve this issue. If you would like integrate Pacback directly with Pacman you can automaticlly install a Pacman hook that creates a Light Restore Point every time you upgrade with Pacman. Pacback also offers it's own `-Syu` if you don't want to use a hook. In both of these cases Pacback creates a Light Restore Point numbered `00` before every system upgrade. If you run into any issues with the upgrade, simply use `pacback --snapback` to instantly downgrade only the packages you upgraded and remove any additions.
 
+Using Pacman:
+1. Install the Pacback hook with: `pacback --install_hook`
+2. Now use Pacman normally and when you need undo a upgrade use: `pacback --snapback`
+
+Using Pacback:
 1. Deploy a system upgrade with: `pacback -Syu`
 2. Instantly rollback this update using: `pacback -sb`
 
@@ -175,8 +193,8 @@ This list is likely to have many changes and edits as new versions are released.
 ### Feature Path:
 - [x] Version Checking
 - [x] Version Migration
-- [ ] Improved Cache Cleaning (A better paccache -c)
-- [ ] Pacman Hook
+- [x] Improved Cache and Restore Point Cleaning
+- [x] Pacman Hook
 - [ ] Impoved Searches for Individual Packages
 - [ ] Fix Checksumming
 - [ ] Fix Directory Creation

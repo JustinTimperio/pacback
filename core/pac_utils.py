@@ -68,7 +68,8 @@ def check_pacback_version(current_version, rp_path, target_version='nil'):
         if os.path.exists(rp_path + '.tar') or os.path.exists(rp_path + '.tar.gz'):
             prError('Full Restore Points Generated Before Version 1.5.0 Are No Longer Compatible With Newer Versions of Pacback!')
             prError('Without Meta Data Pacback Can\'t Upgrade This Restore Point!')
-            return False
+            fail = True
+            return fail
 
     ### Parse Version if Meta Exists
     else:
@@ -88,7 +89,10 @@ def check_pacback_version(current_version, rp_path, target_version='nil'):
                 if upgrade == True:
                     upgrade_to_hardlinks(rp_path)
                 else:
-                    return False
+                    fail = True
+                    return fail
+    fail = False
+    return fail
 
 def upgrade_to_hardlinks(rp_path):
     ### This is a Total Hack Job. Don't Judge Me :(
@@ -109,7 +113,7 @@ def upgrade_to_hardlinks(rp_path):
 
     if len(found) == len(pc):
         prSuccess('All Packages Found!')
-        shutil.rmtree(rp_path + '/pac_cache')
+        rm_dir(rp_path + '/pac_cache', sudo=True)
         mkdir(rp_path + '/pac_cache', sudo=False)
         for pkg in tqdm.tqdm(found, desc='Hardlinking Packages to Pacback RP'):
             os.system('sudo ln ' + pkg + ' ' + rp_path + '/pac_cache/' + pkg.split('/')[-1])
@@ -135,10 +139,85 @@ def upgrade_to_hardlinks(rp_path):
                 tar.add(f, f[len(rp_path):])
 
         for d in meta_dirs:
-            shutil.rmtree(rp_path + '/' + d.split('/')[1])
+            rm_dir(rp_path + '/' + d.split('/')[1], sudo=True)
 
     rm_file(rp_path + '.tar', sudo=True)
     prSuccess('RP Version Upgrade Complete!')
+
+
+#<#><#><#><#><#><#>#<#>#<#
+#+# Pacman Hook
+#<#><#><#><#><#><#>#<#>#<#
+
+def pacback_hook(install):
+    if install == True:
+        mkdir('/etc/pacman.d/hooks', sudo=True)
+        uncomment_line_sed('HookDir', '/etc/pacman.conf', sudo=True)
+        if not os.path.exists('/etc/pacman.d/hooks/pacback.hook'):
+            hook = ['[Trigger]',
+                    'Operation = Upgrade',
+                    'Type = Package',
+                    'Target = *',
+                    '',
+                    '[Action]',
+                    'Description = Pre-Upgrade Pacback Hook',
+                    'Depends = pacman',
+                    'When = PreTransaction',
+                    'Exec = /usr/bin/pacback --hook']
+            for h in hook:
+                os.system('echo ' + escape_bash(h) + '| sudo tee -a /etc/pacman.d/hooks/pacback.hook > /dev/null')
+            prSuccess('Pacback Hook is Now Installed!')
+        else:
+            prSuccess('Pacback Hook is Already Installed!')
+
+    elif install == False:
+        rm_file('/etc/pacman.d/hooks/pacback.hook', sudo=True)
+        prSuccess('Pacback Hook Removed!')
+
+
+#<#><#><#><#><#><#>#<#>#<#
+#+# Better Cache Cleaning
+#<#><#><#><#><#><#>#<#>#<#
+
+def clean_cache(count, base_dir):
+    prWorking('Starting Advanced Cache Cleaning...')
+    if yn_frame('Do You Want To Uninstall Orphaned Packages?') == True:
+        os.system('sudo pacman -R $(pacman -Qtdq)')
+
+    if yn_frame('Do You Want To Remove Old Versions of Installed Packages?') == True:
+        os.system('sudo paccache -rk ' + count)
+    
+    if yn_frame('Do You Want To Remove Cached Orphans?') == True:
+        os.system('sudo paccache -ruk0')
+
+    if yn_frame('Do You Want To Check For Old Pacback Restore Points?') == True:
+        import datetime as dt
+        rps = {f for f in search_fs(base_dir + '/restore-points', 'set') if f.endswith(".meta")}
+        
+        for m in rps:
+            ### Find Create Date in Meta
+            meta = read_list(m)
+            for l in meta:
+                if l.split(':')[0] == 'Date Created':
+                    target_date = l.split(':')[1].strip()
+                    break
+            
+            ### Parse and Format Dates for Compare
+            today =  dt.datetime.now().strftime("%Y/%m/%d")
+            t_split = list(today.split('/'))
+            today_date = dt.date(int(t_split[0]), int(t_split[1]), int(t_split[2])) 
+            o_split = list(target_date.split('/'))
+            old_date = dt.date(int(o_split[0]), int(o_split[1]), int(o_split[2])) 
+
+            ### Compare Days
+            days = (today_date - old_date).days
+            if days > 180:
+                prWarning(m.split('/')[-1] + ' Is Over 180 Days Old!')
+                if yn_frame('Do You Want to Remove This Restore Point?') == True:
+                    rm_file(m, sudo=True)
+                    rm_dir(m[:-5], sudo=True)
+                    prSuccess('Restore Point Removed!')
+            prSuccess(m.split('/')[-1] + ' Passed Comparison!')
 
 
 #<#><#><#><#><#><#>#<#>#<#
@@ -157,7 +236,7 @@ def diff_rp_files(rp_tar, meta_dirs, current_pkgs):
 
     ### Remove if Custom Dirs Unpacked
     if os.path.exists(custom_dirs):
-        shutil.rmtree(custom_dirs)
+        rm_dir(custom_dirs, sudo=True)
 
     ### Untar RP
     prWorking('Unpacking Files from Restore Point Tar....')
@@ -202,7 +281,7 @@ def diff_rp_files(rp_tar, meta_dirs, current_pkgs):
 
         ### Print Changed Files For User
         if len(diff_changed) + len(diff_new) + len(diff_removed) == 0:
-            shutil.rmtree(custom_dirs)
+            rm_dir(custom_dirs, sudo=True)
             return prSuccess('No Files Have Been Changed!')
 
     #######################
@@ -256,5 +335,5 @@ def diff_rp_files(rp_tar, meta_dirs, current_pkgs):
                     fs = (f.split(' : ')[0])
                     os.system('sudo rm ' + fs)
 
-    shutil.rmtree(custom_dirs)
+    rm_dir(custom_dirs, sudo=True)
     prSuccess('File Restore Complete!')

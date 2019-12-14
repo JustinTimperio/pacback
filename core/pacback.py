@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 #### A utility for marking and restoring stable arch packages
-version = '1.5.1'
+version = '1.5.2'
 from python_scripts import *
 from pac_utils import *
 import tqdm, argparse
@@ -26,13 +26,14 @@ def create_restore_point(rp_num, rp_full, dir_list):
 
     ### Check for Existing Restore Points
     if os.path.exists(rp_path) or os.path.exists(rp_meta):
-        if not int(rp_num) == 0: ### Check If -Syu
-            if args.no_confirm == False:
+        if args.no_confirm == False:
+            if int(rp_num) != 0:
                 prWarning('Restore Point #' + str(rp_num).zfill(2) + ' Already Exists!')
                 if yn_frame('Do You Want to Overwrite It?') == False:
-                    return prError('Aborting RP Creation!')
-        rm_file(rp_meta, sudo=True)
-        rm_dir(rp_path, sudo=True)
+                    fail = True
+                    return prError('Aborting RP Creation!'), fail
+            rm_file(rp_meta, sudo=True)
+            rm_dir(rp_path, sudo=True)
 
     if rp_full == True:
         ###################################
@@ -53,7 +54,7 @@ def create_restore_point(rp_num, rp_full, dir_list):
             except: pass
 
         ### Ask About Missing Pkgs
-        if not len(found_pkgs) == len(current_pkgs):
+        if len(found_pkgs) != len(current_pkgs):
             if args.no_confirm == False:
                 pkg_split = trim_pkg_list(found_pkgs)
                 prError('The Following Packages Where NOT Found!')
@@ -62,7 +63,8 @@ def create_restore_point(rp_num, rp_full, dir_list):
                 if yn_frame('Do You Still Want to Continue?') == True:
                     pass
                 else:
-                    return prError('Aborting RP Creation!')
+                    fail=True
+                    return prError('Aborting RP Creation!'), fail
 
         ###############################
         ### HardLink Packages to RP ###
@@ -79,6 +81,7 @@ def create_restore_point(rp_num, rp_full, dir_list):
             ### Find and Get Size of Custom Files
             for d in dir_list:
                 for f in search_fs(d, 'set'):
+                    ### Some Temp Files Will Return A Size Error
                     try: dir_size += os.path.getsize(f)
                     except: pass
                     rp_files.add(f)
@@ -110,8 +113,11 @@ def create_restore_point(rp_num, rp_full, dir_list):
                  'Date Created: ' + dt.datetime.now().strftime("%Y/%m/%d"),
                  'Packages Installed: ' + str(len(current_pkgs)),
                  'Packages in RP: ' + str(len(found_pkgs)),
-                 'Size of Packages in RP: ' + str(convert_size(pac_size)),
-                 ]
+                 'Size of Packages in RP: ' + str(convert_size(pac_size))]
+    
+    if args.notes:
+        meta_list.append('Notes: ' + args.notes)
+    
     if not len(dir_list) == 0:
         dir_meta = ['Dirs File Count: '+ str(len(rp_files)),
                     'Dirs Total Size: '+ str(convert_size(dir_size)),
@@ -129,6 +135,8 @@ def create_restore_point(rp_num, rp_full, dir_list):
     ### Export Final Meta File
     export_list(rp_meta, meta_list)
     prSuccess('Restore Point #' + str(rp_num).zfill(2) + ' Successfully Created!')
+    fail = False
+    return fail
 
 
 #<#><#><#><#><#><#>#<#>#<#
@@ -153,14 +161,16 @@ def rollback_to_rp(rp_num):
         meta = read_list(rp_meta)
         meta_dirs = read_between('========= Dir List =========','======= Pacman List ========', meta)[:-1]
         meta_old_pkgs = read_between('======= Pacman List ========','<Endless>', meta)
+        
+        ### Failsafe to Find Version
         for m in meta:
             if m.split(':')[0] == 'Pacback Version':
                 target_version = m.split(':')[1]
                 break
-        con = check_pacback_version(version, rp_path, target_version)
-        if con == False:
+        ### Compare Versions
+        check_pacback_version(version, rp_path, target_version)
+        if fail == True:
             return prError('Aborting Due to Version Issues!')
-
 
         ### Checking for New and Changed Packages
         changed_pkgs = set(set(meta_old_pkgs) - current_pkgs)
@@ -172,8 +182,9 @@ def rollback_to_rp(rp_num):
         added_pkgs = None
         meta_old_pkgs = None
         changed_pkgs = None
-        con = check_pacback_version(version, rp_path)
-        if con == False:
+        ### Check Version When Meta is Missing
+        check_pacback_version(version, rp_path, target_version)
+        if fail == True:
             return prError('Aborting Due to Version Issues!')
 
     ### Abort if No Files Found
@@ -249,7 +260,6 @@ def rollback_to_rp(rp_num):
     ##########################
     if not len(meta_dirs) > 0:
         return prSuccess('Rollback to Restore Point #' + str(rp_num).zfill(2) + ' Complete!')
-
     else:
         diff_rp_files(rp_tar, meta_dirs, current_pkgs)
 
@@ -305,12 +315,12 @@ def rollback_packages(pkg_list):
     prWorking('Searching File System for Packages...')
     fs_list = fetch_paccache(base_dir + '/restore-points')
     for pkg in pkg_list:
-        found = search_paccache([pkg], fs_list)
-        if len(found) > 0:
-            found_pkgs = trim_pkg_list(found_pkgs)
+        found_pkgs = search_paccache([pkg], fs_list)
+        if len(found_pkgs) > 0:
+            found_split = trim_pkg_list(found_pkgs)
             prSuccess('Pacback Found the Following Package Versions for ' + pkg + ':')
             answer = multi_choice_frame(found_split)
-            for x in found:
+            for x in found_pkgs:
                 if re.findall(re.escape(answer), x):
                     path = x
             os.system('sudo pacman -U ' + path)
@@ -326,6 +336,7 @@ parser = argparse.ArgumentParser(description="A reliable rollback utility for ma
 #### Pacback -Syu
 parser.add_argument("-Syu", "--upgrade", action='store_true', help="Create a light restore point and run a full system upgrade. Use snapback to restore this version state.")
 parser.add_argument("-sb", "--snapback", action='store_true', help="Rollback packages to the version state stored before that last pacback upgrade.")
+parser.add_argument("--hook", action='store_true', help="Used Exclusivly by the Pacback Hook.")
 #### Base RP Functions
 parser.add_argument("-rb", "--rollback", metavar=('RP# or YYYY/MM/DD'), help="Rollback to a previously generated restore point or to an archive date.")
 parser.add_argument("-pkg", "--rollback_pkgs", nargs='*', default=[], metavar=('PACKAGE_NAME'), help="Rollback a list of packages looking for old versions on the system.")
@@ -334,9 +345,13 @@ parser.add_argument("-f", "--full_rp", action='store_true', help="Generate a pac
 parser.add_argument("-d", "--add_dir", nargs='*', default=[], metavar=('/PATH'), help="Add any custom directories to your restore point during a `--create_rp AND --full_rp`.")
 parser.add_argument("-u", "--unlock_rollback", action='store_true', help="Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.")
 #### Utils
+parser.add_argument("-ih", "--install_hook", action='store_true', help="Install a Pacman hook that creates a snapback restore point during each Pacman Upgrade.")
+parser.add_argument("-rh", "--remove_hook", action='store_true', help="Remove the Pacman hook that creates a snapback restore point during each Pacman Upgrade.")
 parser.add_argument("-i", "--info", metavar=('RP#'), help="Print information about a retore point.")
 parser.add_argument("-nc", "--no_confirm", action='store_true', help="Skip asking user questions during RP creation. Will answer yes to all.")
 parser.add_argument("-v", "--version", action='store_true', help="Display Pacback Version.")
+parser.add_argument("-rm", "--clean", metavar=('# Versions to Keep'), help="Clean Old and Orphaned Pacakages. Provide the number of package you want keep.")
+parser.add_argument("-n", "--notes", metavar=('SOME NOTES HERE'), help="Add Custom Notes to Your Metadata File.")
 args = parser.parse_args()
 
 
@@ -348,14 +363,16 @@ base_dir = os.path.dirname(os.path.realpath(__file__))[:-5]
 if args.version:
     print('Pacback Version: ' + version)
 
-elif args.info:
+if args.info:
     if re.findall(r'^([0-9]|0[1-9]|[1-9][0-9])$', args.info):
         rp = base_dir + '/restore-points/rp' + str(args.info).zfill(2)
         if os.path.exists(rp + '.meta'):
             meta = read_list(rp + '.meta')
             meta = read_between('Pacback RP', 'Pacman List', meta, re_flag=True)
+            print('============================')
             for s in meta[:-1]:
                 print(s)
+            print('============================')
 
         elif os.path.exists(rp):
             prError('Meta is Missing For This Restore Point!')
@@ -363,14 +380,28 @@ elif args.info:
         else:
             prError('No Restore Point #' + str(args.info).zfill(2) + ' Was NOT Found!')
     else:
-        prError('No Usable Argument! Rollback Arg Must be a Restore Point # or a Date.')
+        prError('Info Args Must Be in INT Format!')
+
+if args.clean:
+    clean_cache(args.clean, base_dir)
+
+elif args.install_hook:
+    pacback_hook(install=True)
+
+elif args.remove_hook:
+    pacback_hook(install=False)
 
 elif len(args.rollback_pkgs) > 0:
     rollback_packages(args.rollback_pkgs)
 
-elif args.upgrade:
+elif args.hook:
+    args.no_confirm = True
     create_restore_point('00', args.full_rp, args.add_dir)
-    os.system('sudo pacman -Syu')
+
+elif args.upgrade:
+    fail = create_restore_point('00', args.full_rp, args.add_dir)
+    if fail == False:
+        os.system('sudo pacman -Syu')
 
 elif args.snapback:
     if os.path.exists(base_dir + '/restore-points/rp00.meta'):
@@ -390,10 +421,13 @@ elif args.create_rp:
     if re.findall(r'^([1-9]|0[1-9]|[1-9][0-9])$', args.create_rp):
         create_restore_point(args.create_rp, args.full_rp, args.add_dir)
     else:
-        prError('You Are Missing Arguments Or Are Using a Flag Wrong! Refer to Documentation for Help.')
+        prError('Create RP Args Must Be INT or Date! Refer to Documentation for Help.')
 
 elif args.unlock_rollback:
     unlock_rollback()
+
+elif not args.info or not args.version:
+    pass
 
 else:
     prError('No Usable Argument Given!')
