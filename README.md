@@ -55,7 +55,7 @@ Pacback offers a few core commands that streamline the process of creating and r
 **Example: `pacback -nc -c 1 -f -n 'Here Are Some Notes'`**
 * -ih, --install_hook | Install a Pacman hook that creates a snapback restore point during each Pacman upgrade.\
 **Example: `pacback --install_hook`**
-* -rh, --remove_hook | "Remove the Pacman hook that creates a snapback restore point during each Pacman upgrade.\
+* -rh, --remove_hook | Remove the Pacman hook that creates a snapback restore point during each Pacman upgrade.\
 **Example: `pacback --remove_hook`**
 * -i, --info | Print information about a retore point.\
 **Example: `pacback --info 1`**
