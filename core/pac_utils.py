@@ -8,6 +8,7 @@ import tqdm
 #<#><#><#><#><#><#>#<#>#<#
 
 def pacman_Q(replace_spaces=False):
+    ### Writes the output into /tmp, reads file, then removes file
     os.system("pacman -Q > /tmp/pacman_q.meta")
     l = read_list('/tmp/pacman_q.meta', typ='set')
     rm_file('/tmp/pacman_q.meta', sudo=True)
@@ -18,16 +19,19 @@ def pacman_Q(replace_spaces=False):
         return l
 
 def fetch_paccache(pac_path=None):
+    ### Return File System Lists
     pac_cache = search_fs('/var/cache/pacman/pkg', 'set')
-    user_cache = {f for f in search_fs('~/.cache', 'set') if f.endswith(".pkg.tar.xz")}
+    user_cache = {f for f in search_fs('~/.cache', 'set') if f.endswith(".pkg.tar.xz") or f.endswith(".pkg.tar.zst")}
 
     if not pac_path == None:
-        pacback_cache = {f for f in search_fs(pac_path, 'set') if f.endswith('.pkg.tar.xz')}
+        ### Find package versions stored in pacback rps
+        pacback_cache = {f for f in search_fs(pac_path, 'set') if f.endswith('.pkg.tar.xz') or f.endswith(".pkg.tar.zst")}
         fs_list = pac_cache.union(user_cache, pacback_cache)
     else:
         fs_list = pac_cache.union(user_cache)
 
-    ### Check for Duplicate Packages in fs_list
+    ### Checks for duplicate packages in fs_list
+    ### This will catch dups anywhere in fs_list but should usually only run when a pac_path is defined and full rp's are present
     unique_pkgs = {p.split('/')[-1] for p in fs_list}
     if len(fs_list) != len(unique_pkgs):
         prWorking('Filtering Duplicate Packages...')
@@ -35,25 +39,28 @@ def fetch_paccache(pac_path=None):
 
         for u in unique_pkgs:
             u_split = u.split('/')[-1]
+            ### This loop returns the first instance of a file path matching a package name
+            ### All the packages are hardlinked so this provides faster filtering while still pointing to the same inode
             for x in fs_list:
                 if x.split('/')[-1] == u_split:
                     new_fs.add(x)
                     break
         return new_fs
+    
     else:
         return fs_list
 
 def search_paccache(pkg_list, fs_list):
-    bulk_search = ('|'.join(list(re.escape(pkg) for pkg in pkg_list))) ### Packages like g++ need to be escaped
+    bulk_search = re.compile('|'.join(list(re.escape(pkg) for pkg in pkg_list))) ### Packages like g++ need to be escaped
     found_pkgs = set()
     for f in fs_list:
-        if re.findall(bulk_search, f.lower()):
+        if re.findall(bulk_search, f.lower()): ### Combineing all package names into one search term provides much faster results 
             found_pkgs.add(f)
     return found_pkgs
 
 def trim_pkg_list(pkg_list):
-    pkg_split = {pkg.split('/')[-1] for pkg in pkg_list} ### Remove Dir Path
-    pkg_split = {'-'.join(pkg.split('-')[:-1]) for pkg in pkg_split} ### Remove .pkg.tar.xz From Name
+    pkg_split = {pkg.split('/')[-1] for pkg in pkg_list} ### Removes Dir Path
+    pkg_split = {'-'.join(pkg.split('-')[:-1]) for pkg in pkg_split} ### Removes x86_64.pkg.tar.xz or any.pkg.tar.xz
     return pkg_split
 
 
@@ -61,9 +68,8 @@ def trim_pkg_list(pkg_list):
 #+# Version Control
 #<#><#><#><#><#><#>#<#>#<#
 
-def check_pacback_version(current_version, rp_path, target_version='nil'):
-    ### Failsafe When Meta Is Missing
-    if target_version == 'nil':
+def check_pacback_version(current_version, rp_path, meta_exists, meta):
+    if meta_exists == False:
         ### Check for Full RP Created Before V1.5
         if os.path.exists(rp_path + '.tar') or os.path.exists(rp_path + '.tar.gz'):
             prError('Full Restore Points Generated Before Version 1.5.0 Are No Longer Compatible With Newer Versions of Pacback!')
@@ -71,8 +77,14 @@ def check_pacback_version(current_version, rp_path, target_version='nil'):
             fail = True
             return fail
 
-    ### Parse Version if Meta Exists
-    else:
+    elif meta_exists == True:
+        ### Find version in metadate file
+        for m in meta:
+            if m.split(':')[0] == 'Pacback Version':
+                    target_version = m.split(':')[1]
+                    break
+        
+        ### Parse version into vars
         cv_major = int(current_version.split('.')[0])
         cv_minor = int(current_version.split('.')[1])
         cv_patch = int(current_version.split('.')[2])
@@ -176,6 +188,12 @@ def pacback_hook(install):
 
 
 #<#><#><#><#><#><#>#<#>#<#
+#+# Single Package Search 
+#<#><#><#><#><#><#>#<#>#<#
+#  def find_pkg(pkg, fs_list):
+    #  re_pkg = re.compile() re.escape()
+
+#<#><#><#><#><#><#>#<#>#<#
 #+# Better Cache Cleaning
 #<#><#><#><#><#><#>#<#>#<#
 
@@ -195,7 +213,7 @@ def clean_cache(count, base_dir):
         rps = {f for f in search_fs(base_dir + '/restore-points', 'set') if f.endswith(".meta")}
         
         for m in rps:
-            ### Find Create Date in Meta
+            ### Find RP Create Date in Meta File
             meta = read_list(m)
             for l in meta:
                 if l.split(':')[0] == 'Date Created':
@@ -217,7 +235,7 @@ def clean_cache(count, base_dir):
                     rm_file(m, sudo=True)
                     rm_dir(m[:-5], sudo=True)
                     prSuccess('Restore Point Removed!')
-            prSuccess(m.split('/')[-1] + ' Passed Comparison!')
+            prSuccess(m.split('/')[-1] + ' Is Only ' + str(days) + ' Days Old!')
 
 
 #<#><#><#><#><#><#>#<#>#<#

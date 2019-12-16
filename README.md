@@ -2,7 +2,7 @@
 # Pacback - Alpha 1.5
 **TLDR: This projects ultimate goal is to provide flexible and resilient downgrades while maintaining a slim profile and fast performance.**
 
-***Warning: [On 2019/12/27 Arch Linux will be changing it's default compression method from .xz to .zst.](https://www.reddit.com/r/archlinux/comments/e7tbce/update_archdevpublic_rfc_devtools_changing) This will undoubtedly break Pacback and god knows how many other tools and scripts. I will do my best to mitigate the effects of this update but because both of these formats will be used at the same time, I'm expecting a lot of weird behavior while I work out the bugs.***
+***Warning: [On 2019/12/27 Arch Linux will be changing it's default compression method from .xz to .zst.](https://www.reddit.com/r/archlinux/comments/e7tbce/update_archdevpublic_rfc_devtools_changing) I've updated Pacback in advace and everything seems to be working correctly. If you run into any problems please submit an issue.***
 
 ### Index:
 1. [CLI Commands](https://github.com/JustinTimperio/pacback#pacback-cli-commands-and-flags)
