@@ -1,7 +1,8 @@
 #! /usr/bin/env python3
 #### Utils used by pacback
 from python_scripts import *
-import tqdm
+import tqdm, itertools
+import multiprocessing as mp
 
 #<#><#><#><#><#><#>#<#>#<#
 #+# Pacman Utils
@@ -10,53 +11,61 @@ import tqdm
 def pacman_Q(replace_spaces=False):
     ### Writes the output into /tmp, reads file, then removes file
     os.system("pacman -Q > /tmp/pacman_q.meta")
-    l = read_list('/tmp/pacman_q.meta', typ='set')
-    rm_file('/tmp/pacman_q.meta', sudo=True)
+    l = Read_List('/tmp/pacman_q.meta', typ='set')
+    RM_File('/tmp/pacman_q.meta', sudo=True)
     if replace_spaces == True:
         rl = {s.strip().replace(' ', '-') for s in l}
         return rl
     else:
         return l
 
+def return_file_pkg_path(pkg, fs_list):
+    for f in fs_list:
+        if f.split('/')[-1] == pkg:
+            return f
+
+def re_find_pkg(search, fs_list):
+    paths = set()
+    for f in fs_list:
+        if re.findall(search, f.lower()):
+            path.add(f)
+    return paths
+
 def fetch_paccache(pac_path=None):
     ### Return File System Lists
-    pac_cache = search_fs('/var/cache/pacman/pkg', 'set')
-    user_cache = {f for f in search_fs('~/.cache', 'set') if f.endswith(".pkg.tar.xz") or f.endswith(".pkg.tar.zst")}
+    pac_cache = Search_FS('/var/cache/pacman/pkg', 'set')
+    user_cache = {f for f in Search_FS('~/.cache', 'set') if f.endswith(".pkg.tar.xz") or f.endswith(".pkg.tar.zst")}
 
     if not pac_path == None:
         ### Find package versions stored in pacback rps
-        pacback_cache = {f for f in search_fs(pac_path, 'set') if f.endswith('.pkg.tar.xz') or f.endswith(".pkg.tar.zst")}
+        pacback_cache = {f for f in Search_FS(pac_path, 'set') if f.endswith('.pkg.tar.xz') or f.endswith(".pkg.tar.zst")}
         fs_list = pac_cache.union(user_cache, pacback_cache)
     else:
         fs_list = pac_cache.union(user_cache)
 
     ### Checks for duplicate packages in fs_list
     ### This will catch dups anywhere in fs_list but should usually only run when a pac_path is defined and full rp's are present
-    unique_pkgs = {p.split('/')[-1] for p in fs_list}
+    unique_pkgs = Trim_Dir(fs_list)
     if len(fs_list) != len(unique_pkgs):
         prWorking('Filtering Duplicate Packages...')
-        new_fs = set()
-
-        for u in unique_pkgs:
-            u_split = u.split('/')[-1]
-            ### This loop returns the first instance of a file path matching a package name
-            ### All the packages are hardlinked so this provides faster filtering while still pointing to the same inode
-            for x in fs_list:
-                if x.split('/')[-1] == u_split:
-                    new_fs.add(x)
-                    break
+        ### This pool returns the first instance of a file path matching a package name
+        ### All the packages are hardlinked so this provides faster filtering while still pointing to the same inode
+        ### Some locking happens but this reduces filter times by ~50%-100%
+        with mp.Pool(processes=4) as pool:
+            new_fs = pool.starmap(return_file_pkg_path, zip(unique_pkgs, itertools.repeat(fs_list)))
         return new_fs
     
     else:
         return fs_list
 
 def search_paccache(pkg_list, fs_list):
+    ### Combineing all package names into one search term provides much faster results
     bulk_search = re.compile('|'.join(list(re.escape(pkg) for pkg in pkg_list))) ### Packages like g++ need to be escaped
-    found_pkgs = set()
+    paths = set()
     for f in fs_list:
-        if re.findall(bulk_search, f.lower()): ### Combineing all package names into one search term provides much faster results 
-            found_pkgs.add(f)
-    return found_pkgs
+        if re.findall(bulk_search, f.lower()):
+            paths.add(f)
+    return paths 
 
 def trim_pkg_list(pkg_list):
     pkg_split = {pkg.split('/')[-1] for pkg in pkg_list} ### Removes Dir Path
@@ -97,7 +106,7 @@ def check_pacback_version(current_version, rp_path, meta_exists, meta):
         if tv_major == 1 and tv_minor < 5:
             if os.path.exists(rp_path + '.tar') or os.path.exists(rp_path + '.tar.gz'):
                 prError('Full Restore Points Generated Before V1.5.0 Are No Longer Compatible With Newer Versions of Pacback!')
-                upgrade = yn_frame('Do You Want to Upgrade This Restore Point?')
+                upgrade = YN_Frame('Do You Want to Upgrade This Restore Point?')
                 if upgrade == True:
                     upgrade_to_hardlinks(rp_path)
                 else:
@@ -110,30 +119,29 @@ def upgrade_to_hardlinks(rp_path):
     ### This is a Total Hack Job. Don't Judge Me :(
     prWorking('Unpacking...')
     if os.path.exists(rp_path + '.tar.gz'):
-        gz_d(rp_path + '.tar.gz') ### Decompress with Python
-    untar_dir(rp_path + '.tar')
+        GZ_D(rp_path + '.tar.gz') ### Decompress with Python
+    Untar_Dir(rp_path + '.tar')
 
     ### Read and Parse Meta Data
-    meta = read_list(rp_path + '.meta')
-    meta_old_pkgs = read_between('======= Pacman List ========','<Endless>', meta)
-    meta_dirs = read_between('========= Dir List =========','======= Pacman List ========', meta)[:-1]
-    m_search = {s.strip().replace(' ', '-') for s in meta_old_pkgs}
+    meta = Read_List(rp_path + '.meta')
+    meta_old_pkgs = Read_Between('======= Pacman List ========','<Endless>', meta)
+    meta_dirs = Read_Between('========= Dir List =========','======= Pacman List ========', meta)[:-1]
 
     ### Find Existing Package
-    pc = search_fs(rp_path + '/pac_cache')
-    found = search_paccache(m_search, fetch_paccache())
+    pc = Search_FS(rp_path + '/pac_cache')
+    found = search_paccache(Replace_Spaces(meta_old_pkgs), fetch_paccache())
 
     if len(found) == len(pc):
         prSuccess('All Packages Found!')
-        rm_dir(rp_path + '/pac_cache', sudo=True)
-        mkdir(rp_path + '/pac_cache', sudo=False)
+        RM_Dir(rp_path + '/pac_cache', sudo=True)
+        MK_Dir(rp_path + '/pac_cache', sudo=False)
         for pkg in tqdm.tqdm(found, desc='Hardlinking Packages to Pacback RP'):
             os.system('sudo ln ' + pkg + ' ' + rp_path + '/pac_cache/' + pkg.split('/')[-1])
 
     elif len(found) < len(pc):
-        duplicate = {pkg.split('/')[-1] for pkg in pc}.intersection({pkg.split('/')[-1] for pkg in found})
+        duplicate = Trim_Dir(pc).intersection(Trim_Dir(found))
         for d in tqdm.tqdm(duplicate, desc='Mergeing and Hardlinking'):
-            rm_file(rp_path + '/pac_cache/' + d, sudo=True)
+            RM_File(rp_path + '/pac_cache/' + d, sudo=True)
             for p in found:
                 if p.split('/')[-1] == d.split('/')[-1]:
                     os.system('sudo ln ' + p + ' ' + rp_path + '/pac_cache/' + d)
@@ -141,7 +149,7 @@ def upgrade_to_hardlinks(rp_path):
 
     if len(meta_dirs) > 0:
         f_list = set()
-        rp_fs = search_fs(rp_path)
+        rp_fs = Search_FS(rp_path)
         for f in rp_fs:
             if f[len(rp_path):].split('/')[1] != 'pac_cache':
                 f_list.add(f)
@@ -151,9 +159,9 @@ def upgrade_to_hardlinks(rp_path):
                 tar.add(f, f[len(rp_path):])
 
         for d in meta_dirs:
-            rm_dir(rp_path + '/' + d.split('/')[1], sudo=True)
+            RM_Dir(rp_path + '/' + d.split('/')[1], sudo=True)
 
-    rm_file(rp_path + '.tar', sudo=True)
+    RM_File(rp_path + '.tar', sudo=True)
     prSuccess('RP Version Upgrade Complete!')
 
 
@@ -163,8 +171,8 @@ def upgrade_to_hardlinks(rp_path):
 
 def pacback_hook(install):
     if install == True:
-        mkdir('/etc/pacman.d/hooks', sudo=True)
-        uncomment_line_sed('HookDir', '/etc/pacman.conf', sudo=True)
+        MK_Dir('/etc/pacman.d/hooks', sudo=True)
+        Uncomment_Line_Sed('HookDir', '/etc/pacman.conf', sudo=True)
         if not os.path.exists('/etc/pacman.d/hooks/pacback.hook'):
             hook = ['[Trigger]',
                     'Operation = Upgrade',
@@ -177,13 +185,13 @@ def pacback_hook(install):
                     'When = PreTransaction',
                     'Exec = /usr/bin/pacback --hook']
             for h in hook:
-                os.system('echo ' + escape_bash(h) + '| sudo tee -a /etc/pacman.d/hooks/pacback.hook > /dev/null')
+                os.system('echo ' + Escape_Bash(h) + '| sudo tee -a /etc/pacman.d/hooks/pacback.hook > /dev/null')
             prSuccess('Pacback Hook is Now Installed!')
         else:
             prSuccess('Pacback Hook is Already Installed!')
 
     elif install == False:
-        rm_file('/etc/pacman.d/hooks/pacback.hook', sudo=True)
+        RM_File('/etc/pacman.d/hooks/pacback.hook', sudo=True)
         prSuccess('Pacback Hook Removed!')
 
 
@@ -199,22 +207,22 @@ def pacback_hook(install):
 
 def clean_cache(count, base_dir):
     prWorking('Starting Advanced Cache Cleaning...')
-    if yn_frame('Do You Want To Uninstall Orphaned Packages?') == True:
+    if YN_Frame('Do You Want To Uninstall Orphaned Packages?') == True:
         os.system('sudo pacman -R $(pacman -Qtdq)')
 
-    if yn_frame('Do You Want To Remove Old Versions of Installed Packages?') == True:
+    if YN_Frame('Do You Want To Remove Old Versions of Installed Packages?') == True:
         os.system('sudo paccache -rk ' + count)
     
-    if yn_frame('Do You Want To Remove Cached Orphans?') == True:
+    if YN_Frame('Do You Want To Remove Cached Orphans?') == True:
         os.system('sudo paccache -ruk0')
 
-    if yn_frame('Do You Want To Check For Old Pacback Restore Points?') == True:
+    if YN_Frame('Do You Want To Check For Old Pacback Restore Points?') == True:
         import datetime as dt
-        rps = {f for f in search_fs(base_dir + '/restore-points', 'set') if f.endswith(".meta")}
+        rps = {f for f in Search_FS(base_dir + '/restore-points', 'set') if f.endswith(".meta")}
         
         for m in rps:
             ### Find RP Create Date in Meta File
-            meta = read_list(m)
+            meta = Read_List(m)
             for l in meta:
                 if l.split(':')[0] == 'Date Created':
                     target_date = l.split(':')[1].strip()
@@ -231,9 +239,9 @@ def clean_cache(count, base_dir):
             days = (today_date - old_date).days
             if days > 180:
                 prWarning(m.split('/')[-1] + ' Is Over 180 Days Old!')
-                if yn_frame('Do You Want to Remove This Restore Point?') == True:
-                    rm_file(m, sudo=True)
-                    rm_dir(m[:-5], sudo=True)
+                if YN_Frame('Do You Want to Remove This Restore Point?') == True:
+                    RM_File(m, sudo=True)
+                    RM_Dir(m[:-5], sudo=True)
                     prSuccess('Restore Point Removed!')
             prSuccess(m.split('/')[-1] + ' Is Only ' + str(days) + ' Days Old!')
 
@@ -250,25 +258,24 @@ def diff_rp_files(rp_tar, meta_dirs, current_pkgs):
         if any(re.findall('pigz', line.lower()) for line in current_pkgs):
             os.system('pigz -d ' + rp_tar + '.gz -f') ### Decompress With pigz
         else:
-            gz_d(rp_tar + '.gz') ### Decompress with Python
+            GZ_D(rp_tar + '.gz') ### Decompress with Python
 
     ### Remove if Custom Dirs Unpacked
     if os.path.exists(custom_dirs):
-        rm_dir(custom_dirs, sudo=True)
+        RM_Dir(custom_dirs, sudo=True)
 
     ### Untar RP
     prWorking('Unpacking Files from Restore Point Tar....')
-    untar_dir(rp_tar)
+    Untar_Dir(rp_tar)
 
-    diff_yn = yn_frame('Do You Want to Checksum Diff Restore Point Files Against Your Current File System?')
+    diff_yn = YN_Frame('Do You Want to Checksum Diff Restore Point Files Against Your Current File System?')
     if diff_yn == False:
         print('Skipping Diff!')
         pass
 
     elif diff_yn == True:
-        import multiprocessing as mp
-        rp_fs = search_fs(custom_dirs)
-        rp_fs_trim = set(path[len(custom_dirs):] for path in search_fs(custom_dirs))
+        rp_fs = Search_FS(custom_dirs)
+        rp_fs_trim = set(path[len(custom_dirs):] for path in Search_FS(custom_dirs))
 
         ### Checksum Restore Point Files with a MultiProcessing Pool
         with mp.Pool(os.cpu_count()) as pool:
@@ -293,13 +300,13 @@ def diff_rp_files(rp_tar, meta_dirs, current_pkgs):
         ### Find Added Files
         src_fs = set()
         for x in meta_dirs:
-            for l in search_fs(x):
+            for l in Search_FS(x):
                 src_fs.add(l)
         diff_new = src_fs.difference(rp_fs_trim)
 
         ### Print Changed Files For User
         if len(diff_changed) + len(diff_new) + len(diff_removed) == 0:
-            rm_dir(custom_dirs, sudo=True)
+            RM_Dir(custom_dirs, sudo=True)
             return prSuccess('No Files Have Been Changed!')
 
     #######################
@@ -307,19 +314,19 @@ def diff_rp_files(rp_tar, meta_dirs, current_pkgs):
     #######################
     if diff_yn == False:
         prWarning('YOU HAVE NOT CHECKSUMED THE RESTORE POINT! OVERWRITING ALL FILES CAN BE EXTREAMLY DANGOURS!')
-        ow = yn_frame('Do You Still Want to Continue and Restore ALL Files In the Restore Point?')
+        ow = YN_Frame('Do You Still Want to Continue and Restore ALL Files In the Restore Point?')
         if ow == False:
             return print('Skipping Automatic File Restore! Restore Point Files Are Unpacked in ' + custom_dirs)
 
         elif ow == True:
             print('Starting Full File Restore! Please Be Patient As All Files are Overwritten...')
-            rp_fs = search_fs(custom_dirs)
+            rp_fs = Search_FS(custom_dirs)
             for f in rp_fs:
                 prWorking('Please Be Patient. This May Take a While...')
-                os.system('sudo mkdir -p ' + escape_bash('/'.join(f.split('/')[:-1])) + ' && sudo cp -af ' + escape_bash(f) + ' ' + escape_bash(f[len(custom_dirs):]))
+                os.system('sudo MK_Dir -p ' + Escape_Bash('/'.join(f.split('/')[:-1])) + ' && sudo cp -af ' + Escape_Bash(f) + ' ' + Escape_Bash(f[len(custom_dirs):]))
 
     elif diff_yn == True:
-        ow = yn_frame('Do You Want to Automaticly Restore Changed and Missing Files?')
+        ow = YN_Frame('Do You Want to Automaticly Restore Changed and Missing Files?')
         if ow == False:
             return print('Skipping Automatic Restore! Restore Point Files Are Unpacked in ' + custom_dirs)
 
@@ -328,30 +335,30 @@ def diff_rp_files(rp_tar, meta_dirs, current_pkgs):
                 prWarning('The Following Files Have Changed:')
                 for f in diff_changed:
                     prChanged(f)
-                if yn_frame('Do You Want to Overwrite Files That Have Been CHANGED?') == True:
+                if YN_Frame('Do You Want to Overwrite Files That Have Been CHANGED?') == True:
                     prWorking('Please Be Patient. This May Take a While...')
                     for f in diff_changed:
                         fs = (f.split(' : ')[0])
-                        os.system('sudo cp -af ' + escape_bash(custom_dirs + fs) + ' ' + escape_bash(fs))
+                        os.system('sudo cp -af ' + Escape_Bash(custom_dirs + fs) + ' ' + Escape_Bash(fs))
 
         if len(diff_removed) > 0:
             prWarning('The Following Files Have Removed:')
             for f in diff_removed:
                 prRemoved(f)
-            if yn_frame('Do You Want to Add Files That Have Been REMOVED?') == True:
+            if YN_Frame('Do You Want to Add Files That Have Been REMOVED?') == True:
                 prWorking('Please Be Patient. This May Take a While...')
                 for f in diff_removed:
                     fs = (f.split(' : ')[0])
-                    os.system('sudo mkdir -p ' + escape_bash('/'.join(fs.split('/')[:-1])) + ' && sudo cp -af ' + escape_bash(custom_dirs + fs) + ' ' + escape_bash(fs))
+                    os.system('sudo MK_Dir -p ' + Escape_Bash('/'.join(fs.split('/')[:-1])) + ' && sudo cp -af ' + Escape_Bash(custom_dirs + fs) + ' ' + Escape_Bash(fs))
 
         if len(diff_new) > 0:
             for f in diff_new:
                 prAdded(f + ' : NEW FILE!')
-            if yn_frame('Do You Want to Remove Files That Have Beend ADDED?') == True:
+            if YN_Frame('Do You Want to Remove Files That Have Beend ADDED?') == True:
                 prWorking('Please Be Patient. This May Take a While...')
                 for f in diff_new:
                     fs = (f.split(' : ')[0])
                     os.system('sudo rm ' + fs)
 
-    rm_dir(custom_dirs, sudo=True)
+    RM_Dir(custom_dirs, sudo=True)
     prSuccess('File Restore Complete!')
