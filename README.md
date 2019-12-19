@@ -103,7 +103,7 @@ In the following example, I will install Haskell which is a dependency nightmare
 ![Pacback Haskell](https://imgur.com/PzUznWZ.gif)
 
 ### Backup Version Sensitive Application Data
-In some cases, config files many need to be modified when updating packages. In other cases, you may want to backup application data before deploying an upgrade in case of error or corruption. Pacback makes it extremely simple to store files like this and will automatically compare files you have stored against your current file system. Once checksumming is complete you can selectively overwrite each subsection of file type: Changed, Added, and Removed.
+In some cases, config files may need to be modified when updating packages. In other cases, you may want to backup application data before deploying an upgrade in case of error or corruption. Pacback makes it extremely simple to store these files and will automatically compare files you have stored against your current file system. Once checksumming is complete you can selectively overwrite each subsection of file type: Changed, Added, and Removed.
 
 In this example we pack up an Apache websever and Postgresql database.
 1. `pacback -c 1 -f -d /var/www /etc/httpd /var/lib/postgres/data`
@@ -113,7 +113,7 @@ In this example we pack up an Apache websever and Postgresql database.
 ![Pacback Saving App Data](https://imgur.com/Ag0NROG.gif)
 
 ### Rollback a List of Packages 
-Most issues with an update stem from a single package or a set of related package. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`. Packback searches your file system looking for all versions associated with each package name. When searching for a package, be as specific as possible. Since generic names like 'linux' or 'gcc' appear in many package names, the search may be cluttered with unrelated packages.
+Most issues rise from an update stem from a single package or a set of related package. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`. Packback searches your file system looking for all versions associated with each package name. When searching for a package, be as specific as possible. Since generic names like 'linux' or 'gcc' appear in many package names, the search may be cluttered with unrelated packages.
 
 In this example, we selectively rollback 2 packages.
 1. `pacback -pkg typescript electron4`
@@ -121,7 +121,7 @@ In this example, we selectively rollback 2 packages.
 ![Pacback Rolling Back a List of Packages](https://imgur.com/Rhy6iDn.gif)
 
 ### Rolling Back to an Archive Date
-Another popular way to rollback package versions is to use the Arch Linux Archives to pull packages directly with pacman. Pacback automates this entire process with the `pacback -rb` command. To rollback to a specific date, give `-rb` a date in YYYY/MM/DD format and Pacback will automatically save your mirrorlist, point a new mirrorlist to an archive URL, then run a full system downgrade. When every you are ready to jump back to the head, run `pacback -u` and Pacback with automatically retore your old mirrorlist. In the event that you destroy this backup, Pacback can automatically fetch a new HTTP US mirrorlist for the system.
+Another popular way to rollback package versions is to use the Arch Linux Archives to pull packages directly with pacman. Pacback automates this entire process with the `pacback -rb` command. To rollback to a specific date, give `-rb` a date in YYYY/MM/DD format and Pacback will automatically save your mirrorlist, point a new mirrorlist to an archive URL, then run a full system downgrade. Whenever you are ready to jump back to the head, run `pacback -u` and Pacback with automatically retore your old mirrorlist. In the event that you destroy this backup, Pacback can automatically fetch a new HTTP US mirrorlist for the system.
 
 1. `pacback -rb 2019/10/18`
 
@@ -149,7 +149,7 @@ When a Full Restore Point is used, Pacback searches through your file system loo
 
 ![https://i.imgur.com/eikZF2g.jpg](https://i.imgur.com/eikZF2g.jpg)
 
-Full Restore Points also generate a metadata file but even if you lose or delete this file, you will still be able to run a full system rollback and pacback will simply skip its more advanced features. When you fallback on a Full Restore Point, Pacback runs its normal package checks giving you the ability rollback packages and remove any new packages added since its creation. Once this is complete, if you have any config files saved, Pacback with checksum each file and compare it to your file system. Pacback will then let you selectively overwrite each subsection of file type: Changed, Added, and Removed.
+Full Restore Points also generate a metadata file but even if you lose or delete this file, you will still be able to run a full system rollback and pacback will simply skip its more advanced features. When you fallback on a Full Restore Point, Pacback runs its normal package checks giving you the ability rollback packages and remove any new packages added since its creation. Once this is complete, if you have any config files saved, Pacback will checksum each file and compare it to your file system. Pacback will then let you selectively overwrite each subsection of file type: Changed, Added, and Removed.
 
 **Full Restore Point Advantages:**
  - Full RP's Are 100% Self Contained
