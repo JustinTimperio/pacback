@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 #### A utility for marking and restoring stable arch packages
-version = '1.5.2'
+version = '1.5.3'
 from python_scripts import *
 from pac_utils import *
 import tqdm, argparse
@@ -298,14 +298,15 @@ def unlock_rollback():
 
 def rollback_packages(pkg_list):
     prWorking('Searching File System for Packages...')
-    fs_list = fetch_paccache(base_dir + '/restore-points')
+    cache = fetch_paccache(base_dir + '/restore-points')
     for pkg in pkg_list:
-        found_pkgs = search_paccache([pkg], fs_list)
+        found_pkgs = user_pkg_search(pkg, cache)
         if len(found_pkgs) > 0:
-            found_split = trim_pkg_list(found_pkgs)
             prSuccess('Pacback Found the Following Package Versions for ' + pkg + ':')
-            answer = Multi_Choice_Frame(found_split)
-            for x in found_pkgs:
+            answer = Multi_Choice_Frame(found_pkgs)
+            if answer == False:
+                break
+            for x in cache:
                 if re.findall(re.escape(answer), x):
                     path = x
             os.system('sudo pacman -U ' + path)

@@ -24,13 +24,6 @@ def return_file_pkg_path(pkg, fs_list):
         if f.split('/')[-1] == pkg:
             return f
 
-def re_find_pkg(search, fs_list):
-    paths = set()
-    for f in fs_list:
-        if re.findall(search, f.lower()):
-            path.add(f)
-    return paths
-
 def fetch_paccache(pac_path=None):
     ### Return File System Lists
     pac_cache = Search_FS('/var/cache/pacman/pkg', 'set')
@@ -61,11 +54,11 @@ def fetch_paccache(pac_path=None):
 def search_paccache(pkg_list, fs_list):
     ### Combineing all package names into one search term provides much faster results
     bulk_search = re.compile('|'.join(list(re.escape(pkg) for pkg in pkg_list))) ### Packages like g++ need to be escaped
-    paths = set()
+    found_pkgs = set()
     for f in fs_list:
         if re.findall(bulk_search, f.lower()):
-            paths.add(f)
-    return paths 
+            found_pkgs.add(f)
+    return found_pkgs
 
 def trim_pkg_list(pkg_list):
     pkg_split = {pkg.split('/')[-1] for pkg in pkg_list} ### Removes Dir Path
@@ -198,8 +191,26 @@ def pacback_hook(install):
 #<#><#><#><#><#><#>#<#>#<#
 #+# Single Package Search 
 #<#><#><#><#><#><#>#<#>#<#
-#  def find_pkg(pkg, fs_list):
-    #  re_pkg = re.compile() re.escape()
+def user_pkg_search(search_pkg, cache):
+    pkgs = trim_pkg_list(cache)
+    found = set()
+
+    for p in pkgs:
+        r = re.split("\d+-\d+|\d+(?:\.\d+)+|\d:\d+(?:\.\d+)+", p)[0]
+        if r.strip()[-1] == '-':
+            x = r.strip()[:-1]
+        else:
+            x = r
+        if re.fullmatch(re.escape(search_pkg.lower().strip()), x):
+            found.add(p)
+    
+    if len(found) == 0:
+        prError('No Packages Found!')
+        if YN_Frame('Do You Want to Extend the Regex Search?') == True:
+            for p in pkgs:
+                if re.findall(re.escape(search_pkg.lower().strip()), p):
+                    found.add(p)
+    return found
 
 #<#><#><#><#><#><#>#<#>#<#
 #+# Better Cache Cleaning
