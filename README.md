@@ -113,7 +113,7 @@ In this example we pack up an Apache websever and Postgresql database.
 ![Pacback Saving App Data](https://imgur.com/Ag0NROG.gif)
 
 ### Rollback a List of Packages 
-Most issues rise from an update stem from a single package or a set of related package. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`. Packback searches your file system looking for all versions associated with each package name. When searching for a package, be as specific as possible. Since generic names like 'linux' or 'gcc' appear in many package names, the search may be cluttered with unrelated packages.
+Most issues stem from a single package or a set of related package. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`. Packback searches your file system looking for all versions associated with each package name. When searching for a package, be as specific as possible. Since generic names like 'linux' or 'gcc' appear in many package names, the search may be cluttered with unrelated packages.
 
 In this example, we selectively rollback 2 packages.
 1. `pacback -pkg typescript electron4`
