@@ -113,10 +113,10 @@ In this example we pack up an Apache websever and Postgresql database.
 ![Pacback Saving App Data](https://imgur.com/Ag0NROG.gif)
 
 ### Rollback a List of Packages 
-Most issues with an update stem from a single package or a set of related package. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`. Packback searches your file system looking for all versions associated with each package name. When searching for a package, be as specific as possible. Since generic names like 'linux' or 'gcc' appear in many package names, the search may be cluttered with unrelated packages.
+Most issues with an update stem from a single package or a set of related package. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`. Packback searches your file system looking for all versions associated with each package name. When searching for a package, Pacback will do its best to aviod clutter when a name is used in many packages (I.E. xorg-server, xorg-docs, xorg-xauth). If no packages are found you can extend the search but you will need sort through some cluter.
 
 In this example, we selectively rollback 2 packages.
-1. `pacback -pkg typescript electron4`
+1. `pacback -pkg typescript electron`
 
 ![Pacback Rolling Back a List of Packages](https://imgur.com/Rhy6iDn.gif)
 
@@ -197,11 +197,11 @@ This list is likely to have many changes and edits as new versions are released.
 - [x] Version Migration
 - [x] Improved Cache and Restore Point Cleaning
 - [x] Pacman Hook
-- [ ] Impoved Searches for Individual Packages
+- [x] Impoved Searches for Individual Packages
 - [ ] Fix Checksumming
 - [ ] Fix Directory Creation
 - [ ] Better Color Output
 - [ ] AUR Package
 - [ ] Arch Archive Support for Singular Package Versions
-- [ ] Faster Package Searches
+- [x] Faster Package Searches and Filtering
 - [ ] Improve Internal Documentation
