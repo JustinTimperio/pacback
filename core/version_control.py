@@ -96,3 +96,18 @@ def upgrade_to_hardlinks(rp_path):
 
     PS.RM_File(rp_path + '.tar', sudo=True)
     PS.prSuccess('RP Version Upgrade Complete!')
+
+def print_rp_info(rp_path):
+    if os.path.exists(rp_path + '.meta'):
+        meta = PS.Read_List(rp_path + '.meta')
+        meta = PS.Read_Between('Pacback RP', 'Pacman List', meta, re_flag=True)
+        print('============================')
+        for s in meta[:-1]:
+           print(s)
+        print('============================')
+
+    elif os.path.exists(rp_path):
+        PS.prError('Meta is Missing For This Restore Point!')
+
+    else:
+        PS.prError('No Restore Point #' + num + ' Was NOT Found!')
