@@ -3,10 +3,56 @@
 import os
 import re
 import itertools
-import sys
 import datetime as dt
 import multiprocessing as mp
 import python_scripts as PS
+
+log_file = '/var/log/pacback.log'
+rp_paths = '/var/lib/pacback/restore-points'
+
+
+#<#><#><#><#><#><#>#<#>#<#
+#+# Utils For Other Funcs
+#<#><#><#><#><#><#>#<#>#<#
+
+
+def max_threads():
+    cores = os.cpu_count()
+    if cores >= 4:
+        return 4
+    else:
+        return cores
+
+
+def find_pkgs_in_dir(path):
+    cache = {f for f in PS.Search_FS(path, 'set')
+             if f.endswith(".pkg.tar.xz") or f.endswith(".pkg.tar.zst")}
+    return cache
+
+
+def first_pkg_path(pkgs, fs_list):
+    paths = list()
+    for pkg in pkgs:
+        for f in fs_list:
+            if f.split('/')[-1] == pkg:
+                paths.append(f)
+                break
+    return paths
+
+
+def search_pkg_chunk(search, fs_list):
+    pkgs = list()
+    for f in fs_list:
+        if re.findall(search, f.lower()):
+            pkgs.append(f)
+    return pkgs
+
+
+def trim_pkg_list(pkg_list):
+    '''Removes prefix dir and x86_64.pkg.tar.zsd suffix.'''
+    pkg_split = {pkg.split('/')[-1] for pkg in pkg_list}
+    pkg_split = {'-'.join(pkg.split('-')[:-1]) for pkg in pkg_split}
+    return pkg_split
 
 
 #<#><#><#><#><#><#>#<#>#<#
@@ -26,60 +72,63 @@ def pacman_Q(replace_spaces=False):
         return ql
 
 
-def first_pkg_path(pkg, fs_list):
-    '''Used by parallel pac_cache filter. Not General Purpose'''
-    for f in fs_list:
-        if f.split('/')[-1] == pkg:
-            return f
-
-
-def fetch_paccache(pac_path=None):
+def fetch_paccache():
     '''Always returns a unique list of pkgs found on the file sys.'''
-    # Search File System
-    pac_cache = PS.Search_FS('/var/cache/pacman/pkg', 'set')
-    user_cache = {f for f in PS.Search_FS('~/.cache', 'set') if f.endswith(".pkg.tar.xz") or f.endswith(".pkg.tar.zst")}
 
-    if pac_path is not None:
-        # Find package versions stored in pacback rps
-        pacback_cache = {f for f in PS.Search_FS(pac_path, 'set') if f.endswith('.pkg.tar.xz') or f.endswith(".pkg.tar.zst")}
-        fs_list = pac_cache.union(user_cache, pacback_cache)
-    else:
-        fs_list = pac_cache.union(user_cache)
+    # Searches File System For Packages
+    pacman_cache = find_pkgs_in_dir('/var/cache/pacman/pkg')
+    root_cache = find_pkgs_in_dir('/root/.cache')
+    pacback_cache = find_pkgs_in_dir('/var/lib/pacback')
+    user_cache = set()
+    users = os.listdir('/home')
+
+    for u in users:
+        u_pkgs = find_pkgs_in_dir('/home/' + u + '/.cache')
+        user_cache = user_cache.union(u_pkgs)
+
+    fs_list = pacman_cache.union(root_cache, pacback_cache, user_cache)
+    PS.Write_To_Log('FetchPaccache', 'Searched ALL Package Cache Locations', log_file)
 
     unique_pkgs = PS.Trim_Dir(fs_list)
     if len(fs_list) != len(unique_pkgs):
         PS.prWorking('Filtering Duplicate Packages...')
-        # Should usually only run when a pac_path is defined and full rp's are present
-        # This pool returns the first instance of a file matching a package name
-        # Some locking happens but this reduces filter times by ~75%-200%
-        with mp.Pool(processes=4) as pool:
-            new_fs = pool.starmap(first_pkg_path, zip(unique_pkgs, itertools.repeat(fs_list)))
+
+        chunk_size = int(round(len(unique_pkgs) / max_threads(), 0)) + 1
+        unique_pkgs = list(f for f in unique_pkgs)
+        chunks = [unique_pkgs[i:i + chunk_size] for i in range(0, len(unique_pkgs), chunk_size)]
+
+        with mp.Pool(processes=max_threads()) as pool:
+            new_fs = pool.starmap(first_pkg_path, zip(chunks, itertools.repeat(fs_list)))
+            new_fs = set(itertools.chain(*new_fs))
+
+        PS.Write_To_Log('FetchPaccache', 'Returned ' + str(len(new_fs)) + ' Unique Cache Packages', log_file)
         return new_fs
 
     else:
+        PS.Write_To_Log('FetchPaccache', 'Returned ' + str(len(fs_list)) + ' Cached Packages', log_file)
         return fs_list
 
 
 def search_paccache(pkg_list, fs_list):
     '''Searches cache for matching pkg versions and returns results.'''
+    PS.Write_To_Log('SearchPaccache', 'Started Search for ' + str(len(pkg_list)) + ' Packages', log_file)
+
     # Combing package names into one term provides much faster results
-    bulk_search = re.compile('|'.join(list(re.escape(pkg) for pkg in pkg_list)))
-    found_pkgs = set()
-    for f in fs_list:
-        if re.findall(bulk_search, f.lower()):
-            found_pkgs.add(f)
+    bulk_search = ('|'.join(list(re.escape(pkg) for pkg in pkg_list)))
+    chunk_size = int(round(len(fs_list) / max_threads(), 0)) + 1
+    fs_list = list(f for f in fs_list)
+    chunks = [fs_list[i:i + chunk_size] for i in range(0, len(fs_list), chunk_size)]
+
+    with mp.Pool(processes=max_threads()) as pool:
+        found_pkgs = pool.starmap(search_pkg_chunk, zip(itertools.repeat(bulk_search), chunks))
+        found_pkgs = set(itertools.chain(*found_pkgs))
+
+    PS.Write_To_Log('SearchPaccache', 'Found ' + str(len(found_pkgs)) + ' OUT OF ' + str(len(pkg_list)) + ' Packages', log_file)
     return found_pkgs
 
 
-def trim_pkg_list(pkg_list):
-    '''Removes prefix dir and x86_64.pkg.tar.zsd suffix.'''
-    pkg_split = {pkg.split('/')[-1] for pkg in pkg_list}
-    pkg_split = {'-'.join(pkg.split('-')[:-1]) for pkg in pkg_split}
-    return pkg_split
-
-
 #<#><#><#><#><#><#>#<#>#<#
-#+# Single Package Search
+#+# Rollback Packages
 #<#><#><#><#><#><#>#<#>#<#
 
 
@@ -97,36 +146,42 @@ def user_pkg_search(search_pkg, cache):
         if re.fullmatch(re.escape(search_pkg.lower().strip()), x):
             found.add(p)
 
-    if len(found) == 0:
+    if not found:
         PS.prError('No Packages Found!')
         if PS.YN_Frame('Do You Want to Extend the Regex Search?') is True:
             for p in pkgs:
                 if re.findall(re.escape(search_pkg.lower().strip()), p):
                     found.add(p)
+
     return found
-
-
-#<#><#><#><#><#><#>#<#>#<#
-#+# Rollback Packages
-#<#><#><#><#><#><#>#<#>#<#
 
 
 def rollback_packages(pkg_list):
     PS.prWorking('Searching File System for Packages...')
-    cache = PS.fetch_paccache(base_dir + '/restore-points')
+    cache = fetch_paccache(rp_paths)
+    PS.Write_To_Log('UserSearch', 'Started Search for ' + ' '.join(pkg_list), log_file)
+
     for pkg in pkg_list:
-        found_pkgs = PU.user_pkg_search(pkg, cache)
-        if len(found_pkgs) > 0:
+        found_pkgs = user_pkg_search(pkg, cache)
+
+        if found_pkgs:
+            PS.Write_To_Log('UserSearch', 'Found ' + str(len(found_pkgs)) + 'pkgs for ' + pkg, log_file)
             PS.prSuccess('Pacback Found the Following Package Versions for ' + pkg + ':')
             answer = PS.Multi_Choice_Frame(found_pkgs)
+
             if answer is False:
+                PS.Write_To_Log('UserSearch', 'User Force Exited Multi_Choice_Frame - ' + pkg, log_file)
                 break
             for x in cache:
                 if re.findall(re.escape(answer), x):
                     path = x
-            os.system('sudo pacman -U ' + path)
+
+            PS.pacman(path, '-U')
+            PS.Write_To_Log('UserSearch', 'Sent -U ' + path + ' to Pacman', log_file)
+
         else:
             PS.prError('No Packages Found Under the Name: ' + pkg)
+            PS.Write_To_Log('UserSearch', 'Search ' + pkg.upper() + ' Returned Zero Results', log_file)
 
 
 #<#><#><#><#><#><#>#<#>#<#
@@ -134,21 +189,28 @@ def rollback_packages(pkg_list):
 #<#><#><#><#><#><#>#<#>#<#
 
 
-def clean_cache(count, base_dir):
+def clean_cache(count):
+    PS.Start_Log('Clean_Cache', log_file)
     PS.prWorking('Starting Advanced Cache Cleaning...')
     if PS.YN_Frame('Do You Want To Uninstall Orphaned Packages?') is True:
         os.system('sudo pacman -R $(pacman -Qtdq)')
+        PS.Write_To_Log('Clean_Cache', 'Ran pacman -R $(pacman -Qtdq)', log_file)
 
     if PS.YN_Frame('Do You Want To Remove Old Versions of Installed Packages?') is True:
         os.system('sudo paccache -rk ' + count)
+        PS.Write_To_Log('Clean_Cache', 'Ran paccache -rk ' + count, log_file)
 
     if PS.YN_Frame('Do You Want To Remove Cached Orphans?') is True:
         os.system('sudo paccache -ruk0')
+        PS.Write_To_Log('Clean_Cache', 'Ran paccache -ruk0', log_file)
 
     if PS.YN_Frame('Do You Want To Check For Old Pacback Restore Points?') is True:
-        rps = {f for f in PS.Search_FS(base_dir + '/restore-points', 'set') if f.endswith(".meta")}
+        PS.Write_To_Log('Clean_Cache', 'Started Search For Old RPs', log_file)
+        metas = PS.Search_FS('/var/lib/pacback/restore-points', 'set')
+        rps = {f for f in metas if f.endswith(".meta")}
 
         for m in rps:
+            rp_num = m.split('/')[-1]
             # Find RP Create Date in Meta File
             meta = PS.Read_List(m)
             for l in meta:
@@ -171,7 +233,11 @@ def clean_cache(count, base_dir):
                     PS.RM_File(m, sudo=True)
                     PS.RM_Dir(m[:-5], sudo=True)
                     PS.prSuccess('Restore Point Removed!')
-            PS.prSuccess(m.split('/')[-1] + ' Is Only ' + str(days) + ' Days Old!')
+                    PS.Write_To_Log('Clean_Cache', 'Removed RP ' + rp_num, log_file)
+            PS.prSuccess(rp_num + ' Is Only ' + str(days) + ' Days Old!')
+            PS.Write_To_Log('Clean_Cache', 'RP ' + rp_num + ' Was Less Than 180 Days 0ld', log_file)
+
+    PS.End_Log('Clean_Cache', log_file)
 
 
 #<#><#><#><#><#><#>#<#>#<#
@@ -180,24 +246,36 @@ def clean_cache(count, base_dir):
 
 
 def unlock_rollback():
+    PS.Start_Log('UnlockRollback', log_file)
     # Check if mirrorlist is locked
     if len(PS.Read_List('/etc/pacman.d/mirrorlist')) == 1:
+        PS.Write_To_Log('UnlockRollback', 'Lock Detected on Mirrorlist', log_file)
+
         if os.path.exists('/etc/pacman.d/mirrolist.pacback'):
-            list_fetch = PS.YN_Frame('Pacback Can\'t Find Your Backup Mirrorlist! Do You Want to Fetch a New US HTTPS Mirrorlist?')
-            if list_fetch is True:
+            PS.Write_To_Log('UnlockRollback', 'Backup Mirrorlist Is Missing', log_file)
+            fetch = PS.YN_Frame('Pacback Can\'t Find Your Backup Mirrorlist! Do You Want to Fetch a New US HTTPS Mirrorlist?')
+            if fetch is True:
                 os.system("curl -s 'https://www.archlinux.org/mirrorlist/?country=US&protocol=https&use_mirror_status=on' | sed -e 's/^#Server/Server/' -e '/^#/d' | sudo tee /etc/pacman.d/mirrorlist.pacback >/dev/null")
             else:
-                sys.exit('Critical Error! Please Manually Replace Your Mirrorlist!')
+                PS.Abort_With_Log('UnlockRollback', 'Backup Mirrorlist Is Missing and User Declined Download', 'Please Manually Replace Your Mirrorlist!', log_file)
+
         os.system('sudo cp /etc/pacman.d/mirrorlist.pacback /etc/pacman.d/mirrorlist')
+        PS.Write_To_Log('UnlockRollback', 'Mirrorlist Was Restored Successfully', log_file)
+
     else:
+        PS.Write_To_Log('UnlockRollback', 'No Mirrorlist Lock Was Found', log_file)
+        PS.End_Log('UnlockRollback', log_file)
         return PS.prError('Pacback Does NOT Have an Active Date Lock!')
 
     # Update?
     update = PS.YN_Frame('Do You Want to Update Your System Now?')
     if update is True:
         os.system('sudo pacman -Syu')
+        PS.Write_To_Log('UnlockRollback', 'User Ran -Syu Upgrade', log_file)
     if update is False:
-        return print('Skipping Update!')
+        print('Skipping Update!')
+
+    PS.End_Log('UnlockRollback', log_file)
 
 
 #<#><#><#><#><#><#>#<#>#<#
@@ -208,6 +286,8 @@ def unlock_rollback():
 def pacback_hook(install):
     '''Installs or removes a standard alpm hook in /etc/pacman.d/hooks
     Runs as a PreTransaction hook during every upgrade.'''
+    PS.Start_Log('PacbackHook', log_file)
+
     if install is True:
         PS.MK_Dir('/etc/pacman.d/hooks', sudo=True)
         PS.Uncomment_Line_Sed('HookDir', '/etc/pacman.conf', sudo=True)
@@ -222,12 +302,37 @@ def pacback_hook(install):
                     'Depends = pacman',
                     'When = PreTransaction',
                     'Exec = /usr/bin/pacback --hook']
-            for h in hook:
-                os.system('echo ' + PS.Escape_Bash(h) + '| sudo tee -a /etc/pacman.d/hooks/pacback.hook > /dev/null')
+            PS.Export_List('/etc/pacman.d/hooks/pacback.hook', hook)
             PS.prSuccess('Pacback Hook is Now Installed!')
+            PS.Write_To_Log('PackbackHook', 'Installed Pacback Hook Successfully', log_file)
         else:
             PS.prSuccess('Pacback Hook is Already Installed!')
+            PS.Write_To_Log('PackbackHook', 'Pacback Hook Was Already Installed', log_file)
 
     elif install is False:
         PS.RM_File('/etc/pacman.d/hooks/pacback.hook', sudo=True)
+        PS.Write_To_Log('PackbackHook', 'Removed Pacback Hook Successfully', log_file)
         PS.prSuccess('Pacback Hook Removed!')
+
+    PS.End_Log('Pacback_Hook', log_file)
+
+#<#><#><#><#><#><#>#<#>#<#
+#+# Show RP Info
+#<#><#><#><#><#><#>#<#>#<#
+
+
+def print_rp_info(num):
+    rp_meta = rp_paths + '/rp' + num + '.meta'
+    if os.path.exists(rp_meta):
+        meta = PS.Read_List(rp_meta)
+        meta = PS.Read_Between('Pacback RP', 'Pacman List', meta, re_flag=True)
+        print('============================')
+        for s in meta[:-1]:
+            print(s)
+        print('============================')
+
+    elif os.path.exists(rp_meta):
+        PS.prError('Meta is Missing For This Restore Point!')
+
+    else:
+        PS.prError('No Restore Point #' + num + ' Was NOT Found!')

@@ -5,47 +5,74 @@ import tqdm
 import python_scripts as PS
 import pac_utils as PU
 
+log_file = '/var/log/pacback.log'
+rp_paths = '/var/lib/pacback/restore-points'
+
+
 #<#><#><#><#><#><#>#<#>#<#
 #+# Version Control
 #<#><#><#><#><#><#>#<#>#<#
 
+def pre_fligh_check():
+    if not os.geteuid() == 0:
+        PS.Start_Log('PreFlight', log_file)
+        PS.Abort_With_Log('PreFlight', 'Not Root!', 'Pacback Must Be Run With Sudo OR Root!', log_file)
+
+    base_dir = os.path.dirname(os.path.realpath(__file__))[:-5]
+    old_rp_path = base_dir + '/restore-points'
+    if os.path.exists(old_rp_path):
+        PS.Start_Log('PreFlight', log_file)
+        PS.prError('Looks Like You Are Upgrading From A Version Before 1.6!')
+        PS.prWorking('Migrating Your Restore Point Folder Now...')
+        PS.MK_Dir('/var/lib/pacback', sudo=False)
+        os.system('mv ' + old_rp_path + ' /var/lib/pacback')
+        PS.Write_To_Log('PreFlight', 'Pacback Successfully Migrated To /var/lib/pacback', log_file)
+
+
 def check_pacback_version(current_version, rp_path, meta_exists, meta):
     if meta_exists is False:
+        PS.Write_To_Log('VersionControl', 'Restore Point is Missing MetaData', log_file)
+
         # Check for Full RP Created Before V1.5
         if os.path.exists(rp_path + '.tar') or os.path.exists(rp_path + '.tar.gz'):
             PS.prError('Full Restore Points Generated Before Version 1.5.0 Are No Longer Compatible With Newer Versions of Pacback!')
-            PS.prError('Without Meta Data Pacback Can\'t Upgrade This Restore Point!')
-            fail = True
-            return fail
+            PS.Abort_With_Log('VersionControl','RP Version is > V1.5 and MetaData is Missing',
+                              'Without Meta Data Pacback Can\'t Upgrade This Restore Point!', log_file)
 
     elif meta_exists is True:
         # Find version in metadate file
         for m in meta:
             if m.split(':')[0] == 'Pacback Version':
-                target_version = m.split(':')[1]
+                target_version = m.split(':')[1].strip()
                 break
 
         # Parse version into vars
-        cv_major = int(current_version.split('.')[0])
-        cv_minor = int(current_version.split('.')[1])
-        cv_patch = int(current_version.split('.')[2])
+        cv_M = int(current_version.split('.')[0])
+        cv_m = int(current_version.split('.')[1])
+        cv_p = int(current_version.split('.')[2])
         ####
-        tv_major = int(target_version.split('.')[0])
-        tv_minor = int(target_version.split('.')[1])
-        tv_patch = int(target_version.split('.')[2])
+        tv_M = int(target_version.split('.')[0])
+        tv_m = int(target_version.split('.')[1])
+        tv_p = int(target_version.split('.')[2])
+
+        if current_version != target_version:
+            PS.Write_To_Log('VersionControl', 'Current Version ' + current_version + ' Miss-Matched With ' + target_version, log_file)
+        else:
+            PS.Write_To_Log('VersionControl', 'Both Versions Match ' + current_version, log_file)
 
         # Check for Full RP's Created Before V1.5
-        if tv_major == 1 and tv_minor < 5:
+        if tv_M == 1 and tv_m < 5:
             if os.path.exists(rp_path + '.tar') or os.path.exists(rp_path + '.tar.gz'):
                 PS.prError('Full Restore Points Generated Before V1.5.0 Are No Longer Compatible With Newer Versions of Pacback!')
                 upgrade = PS.YN_Frame('Do You Want to Upgrade This Restore Point?')
                 if upgrade is True:
                     upgrade_to_hardlinks(rp_path)
                 else:
-                    fail = True
-                    return fail
-    fail = False
-    return fail
+                    PS.Abort_With_Log('VersionControl', 'User Exited Upgrade',
+                                      'Aborting!', log_file)
+
+        if tv_major == 1 and tv_minor < 5 and tv_patch > 0:
+            upgrade
 
 
 def upgrade_to_hardlinks(rp_path):
@@ -96,18 +123,3 @@ def upgrade_to_hardlinks(rp_path):
 
     PS.RM_File(rp_path + '.tar', sudo=True)
     PS.prSuccess('RP Version Upgrade Complete!')
-
-def print_rp_info(rp_path):
-    if os.path.exists(rp_path + '.meta'):
-        meta = PS.Read_List(rp_path + '.meta')
-        meta = PS.Read_Between('Pacback RP', 'Pacman List', meta, re_flag=True)
-        print('============================')
-        for s in meta[:-1]:
-           print(s)
-        print('============================')
-
-    elif os.path.exists(rp_path):
-        PS.prError('Meta is Missing For This Restore Point!')
-
-    else:
-        PS.prError('No Restore Point #' + num + ' Was NOT Found!')
