@@ -14,9 +14,9 @@ rp_paths = '/var/lib/pacback/restore-points'
 #<#><#><#><#><#><#>#<#>#<#
 
 def pre_fligh_check():
-    if not os.geteuid() == 0:
+    if not os.getuid() == 0:
         PS.Start_Log('PreFlight', log_file)
-        PS.Abort_With_Log('PreFlight', 'Not Root!', 'Pacback Must Be Run With Sudo OR Root!', log_file)
+        PS.Abort_With_Log('PreFlight', 'Not Root!', 'Pacback Must Be Run With Sudo OR As Root!', log_file)
 
     base_dir = os.path.dirname(os.path.realpath(__file__))[:-5]
     old_rp_path = base_dir + '/restore-points'
@@ -70,9 +70,6 @@ def check_pacback_version(current_version, rp_path, meta_exists, meta):
                 else:
                     PS.Abort_With_Log('VersionControl', 'User Exited Upgrade',
                                       'Aborting!', log_file)
-
-        if tv_major == 1 and tv_minor < 5 and tv_patch > 0:
-            upgrade
 
 
 def upgrade_to_hardlinks(rp_path):

@@ -69,7 +69,6 @@ Pacback offers a few core commands that streamline the process of creating and r
 ------------------
 
 ## Install Instructions:
-Where ever you clone the repository will act as the base directory for Restore Points.
 1. `git clone --recurse-submodules https://github.com/JustinTimperio/pacback.git`
 2. `pacman -S python-tqdm arch-install-scripts`
 3. `sudo ln -s /dir/to/pacback/core/pacback.py /usr/bin/pacback`
@@ -149,7 +148,7 @@ When a Full Restore Point is used, Pacback searches through your file system loo
 
 ![https://i.imgur.com/eikZF2g.jpg](https://i.imgur.com/eikZF2g.jpg)
 
-Full Restore Points also generate a metadata file but even if you lose or delete this file, you will still be able to run a full system rollback and pacback will simply skip its more advanced features. When you fallback on a Full Restore Point, Pacback runs its normal package checks giving you the ability rollback packages and remove any new packages added since its creation. Once this is complete, if you have any config files saved, Pacback with checksum each file and compare it to your file system. Pacback will then let you selectively overwrite each subsection of file type: Changed, Added, and Removed.
+Full Restore Points also generate a metadata file but even if you lose or delete this file, you will still be able to run a full system rollback and Pacback will simply skip its more advanced features. When you fallback on a Full Restore Point, Pacback runs its normal package checks giving you the ability rollback packages and remove any new packages added since its creation. Once this is complete, if you have any config files saved, Pacback with checksum each file and compare it to your file system. Pacback will then let you selectively overwrite each subsection of file type: Changed, Added, and Removed.
 
 **Full Restore Point Advantages:**
  - Full RP's Are 100% Self Contained
