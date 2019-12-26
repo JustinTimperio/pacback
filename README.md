@@ -1,5 +1,5 @@
 
-# Pacback - Alpha 1.5
+# Pacback - Alpha 1.6
 **TLDR: This projects ultimate goal is to provide flexible and resilient downgrades while maintaining a slim profile and fast performance.**
 
 ***Warning: [On 2019/12/27 Arch Linux will be changing it's default compression method from .xz to .zst.](https://www.reddit.com/r/archlinux/comments/e7tbce/update_archdevpublic_rfc_devtools_changing) I've updated Pacback in advace and everything seems to be working correctly. If you run into any problems please submit an issue.***
@@ -186,7 +186,7 @@ aarch64-linux-gnu-linux-api-headers 4.20-1
 This list is likely to have many changes and edits as new versions are released. Please read this carefully when updating versions or deploying pacback to new systems.
 
 ### Issues:
-- **Pacback Skips Checksumming Files over 1GB.** - This is done for a number of reasons, first of which is that python sucks at this. I mean its god awful at reading large files. In my testing checksumming took 30x-50x longer compared to a terminal equivalent. The second reason large files are skipped is that this it is outside of Pacback's use-case. Packaging directories is intended for saving the state of potentially thousands of small configuration files, not large iso's or archives. 
+- **Pacback Skips Checksumming Files over 5GB.** - This is done for a number of reasons, first of which is that python sucks at this. I mean its god awful at reading large files. In my testing checksumming took 30x-50x longer compared to a terminal equivalent. The second reason large files are skipped is that this it is outside of Pacback's use-case. Packaging directories is intended for saving the state of potentially thousands of small configuration files, not large iso's or archives. 
 
 - **Pacback Creates Missing Directories as Root.** - Currently files are copied out of the restore point with the exact same permissions they went in with. The issue here is the creation of missing directories. When Pacback creates these directories the original permissions are not copied. 
 
@@ -198,10 +198,13 @@ This list is likely to have many changes and edits as new versions are released.
 - [x] Improved Cache and Restore Point Cleaning
 - [x] Pacman Hook
 - [x] Impoved Searches for Individual Packages
-- [ ] Fix Checksumming
+- [x] Internal Logging
+- [x] PEP8 Comliance
+- [x] Multi-Threaded Package Searches and Filtering
+- [x] Linux Filesystem Hierarchy Compliance
+- [x] Fix Checksumming
 - [ ] Fix Directory Creation
 - [ ] Better Color Output
 - [ ] AUR Package
-- [ ] Arch Archive Support for Singular Package Versions
-- [x] Faster Package Searches and Filtering
+- [ ] Archive Support for Single Non-Cached Package Versions
 - [ ] Improve Internal Documentation
