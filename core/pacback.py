@@ -84,15 +84,15 @@ elif args.rollback_pkgs:
 
 elif args.hook:
     args.no_confirm = True
-    cp.create_restore_point('00', args.full_rp, args.add_dir)
+    cp.create_restore_point(version, '00', args.full_rp, args.add_dir, args.no_confirm, args.notes)
 
 elif args.upgrade:
-    cp.create_restore_point('00', args.full_rp, args.add_dir)
+    cp.create_restore_point(version, '00', args.full_rp, args.add_dir, args.no_confirm, args.notes)
     os.system('sudo pacman -Syu')
 
 elif args.snapback:
-    if os.path.exists('/var/app/pacback/restore-points/rp00.meta'):
-        rb.rollback_to_rp('00')
+    if os.path.exists('/var/lib/pacback/restore-points/rp00.meta'):
+        rb.rollback_to_rp(version, '00')
     else:
         prError('No Snapback Found!')
 

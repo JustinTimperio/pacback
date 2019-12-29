@@ -95,7 +95,7 @@ def rollback_to_rp(version, rp_num):
     if full_rp is True:
         if meta_exists is True:
             # Pass If No Packages Have Changed
-            if changed_pkgs is not False:
+            if len(changed_pkgs) > 0:
                 PS.prSuccess('No Packages Have Been Upgraded!')
                 PS.Write_To_Log('RollbackRP', 'No Packages Have Been Upgraded', log_file)
             else:
@@ -117,15 +117,15 @@ def rollback_to_rp(version, rp_num):
     elif meta_exists is True and full_rp is False:
 
         # Pass If No Packages Have Changed
-        if changed_pkgs is not False:
+        if len(changed_pkgs) > 0:
+            PS.prWorking('Bulk Scanning for ' + str(len(meta_old_pkgs)) + ' Packages...')
+            found_pkgs = pu.search_paccache(m_search, pu.fetch_paccache())
+        else:
             PS.prSuccess('No Packages Have Been Upgraded!')
             PS.Write_To_Log('RollbackRP', 'No Packages Have Been Upgraded', log_file)
-        else:
-            PS.prWorking('Bulk Scanning for ' + str(len(meta_old_pkgs)) + ' Packages...')
-            print(m_search)
-            found_pkgs = pu.search_paccache(m_search, pu.fetch_paccache())
+            found_pkgs = {}
 
-        if changed_pkgs is not False:
+        if len(changed_pkgs) == 0:
             pass
 
         # Pass Comparison if All Packages Found
@@ -153,7 +153,7 @@ def rollback_to_rp(version, rp_num):
                                   'Aborting Rollback!', log_file)
 
     # Ask User If They Want to Remove New Packages
-    if added_pkgs is True:
+    if len(added_pkgs) > 0:
         PS.prWarning('The Following Packages Are Installed But Are NOT Present in Restore Point #' + rp_num + ':')
         PS.Write_To_Log('RollbackRP', str(len(added_pkgs)) + ' Have Been Added Since RP Creation', log_file)
         for pkg in added_pkgs:
@@ -167,11 +167,7 @@ def rollback_to_rp(version, rp_num):
     ##########################
     # Diff Restore Point Files
     ##########################
-    if meta_dirs is not False:
-        PS.prSuccess('Rollback to Restore Point #' + rp_num + ' Complete!')
-        PS.Write_To_Log('RollbackRP', 'Rollback to RP #' + rp_num + ' Complete', log_file)
-
-    else:
+    if len(meta_dirs) > 0:
         custom_dirs = rp_tar[:-4]
         if os.path.exists(rp_tar + '.gz'):
             PS.prWorking('Decompressing Restore Point....')
@@ -227,9 +223,9 @@ def rollback_to_rp(version, rp_num):
                 PS.RM_Dir(custom_dirs, sudo=True)
                 return PS.prSuccess('No Files Have Been Changed!')
 
-        #######################
-        ### Overwrite Files ###
-        #######################
+        #################
+        # Overwrite Files
+        #################
         if diff_yn is False:
             PS.prWarning('YOU HAVE NOT CHECKSUMED THE RESTORE POINT! OVERWRITING ALL FILES CAN BE EXTREAMLY DANGOURS!')
             ow = PS.YN_Frame('Do You Still Want to Continue and Restore ALL Files In the Restore Point?')
@@ -280,5 +276,9 @@ def rollback_to_rp(version, rp_num):
 
         PS.RM_Dir(custom_dirs, sudo=True)
         PS.prSuccess('File Restore Complete!')
+
+    else:
+        PS.prSuccess('Rollback to Restore Point #' + rp_num + ' Complete!')
+        PS.Write_To_Log('RollbackRP', 'Rollback to RP #' + rp_num + ' Complete', log_file)
 
     PS.End_Log('RollbackRP', log_file)

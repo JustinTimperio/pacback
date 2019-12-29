@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-# Utils used by pacback
 import os
 import re
 import itertools
@@ -12,7 +11,7 @@ rp_paths = '/var/lib/pacback/restore-points'
 
 
 #<#><#><#><#><#><#>#<#>#<#
-#+# Utils For Other Funcs
+#<># Utils For Other Funcs
 #<#><#><#><#><#><#>#<#>#<#
 
 
@@ -56,7 +55,7 @@ def trim_pkg_list(pkg_list):
 
 
 #<#><#><#><#><#><#>#<#>#<#
-#+# Pacman Utils
+#<># Pacman Utils
 #<#><#><#><#><#><#>#<#>#<#
 
 
@@ -128,7 +127,7 @@ def search_paccache(pkg_list, fs_list):
 
 
 #<#><#><#><#><#><#>#<#>#<#
-#+# Rollback Packages
+#<># Rollback Packages
 #<#><#><#><#><#><#>#<#>#<#
 
 
@@ -185,7 +184,7 @@ def rollback_packages(pkg_list):
 
 
 #<#><#><#><#><#><#>#<#>#<#
-#+# Better Cache Cleaning
+#<># Better Cache Cleaning
 #<#><#><#><#><#><#>#<#>#<#
 
 
@@ -241,7 +240,7 @@ def clean_cache(count):
 
 
 #<#><#><#><#><#><#>#<#>#<#
-#+# Unlock Mirrorlist
+#<># Unlock Mirrorlist
 #<#><#><#><#><#><#>#<#>#<#
 
 
@@ -279,7 +278,7 @@ def unlock_rollback():
 
 
 #<#><#><#><#><#><#>#<#>#<#
-#+# Pacman Hook
+#<># Pacman Hook
 #<#><#><#><#><#><#>#<#>#<#
 
 
@@ -304,20 +303,20 @@ def pacback_hook(install):
                     'Exec = /usr/bin/pacback --hook']
             PS.Export_List('/etc/pacman.d/hooks/pacback.hook', hook)
             PS.prSuccess('Pacback Hook is Now Installed!')
-            PS.Write_To_Log('PackbackHook', 'Installed Pacback Hook Successfully', log_file)
+            PS.Write_To_Log('InstallHook', 'Installed Pacback Hook Successfully', log_file)
         else:
             PS.prSuccess('Pacback Hook is Already Installed!')
-            PS.Write_To_Log('PackbackHook', 'Pacback Hook Was Already Installed', log_file)
+            PS.Write_To_Log('InstallHook', 'Pacback Hook Was Already Installed', log_file)
 
     elif install is False:
         PS.RM_File('/etc/pacman.d/hooks/pacback.hook', sudo=True)
-        PS.Write_To_Log('PackbackHook', 'Removed Pacback Hook Successfully', log_file)
+        PS.Write_To_Log('RemoveHook', 'Removed Pacback Hook Successfully', log_file)
         PS.prSuccess('Pacback Hook Removed!')
 
-    PS.End_Log('Pacback_Hook', log_file)
+    PS.End_Log('PacbackHook', log_file)
 
 #<#><#><#><#><#><#>#<#>#<#
-#+# Show RP Info
+#<># Show RP Info
 #<#><#><#><#><#><#>#<#>#<#
 
 
