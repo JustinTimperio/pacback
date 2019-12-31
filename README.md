@@ -52,6 +52,8 @@ Pacback offers a few core commands that streamline the process of creating and r
 **Example: `pacback -f -c 1 -d /dir1/to/add /dir2/to/add /dir3/to/add`**
 * -nc, --no_confirm | Skip asking user questions during RP creation. Will answer yes to all.\
 **Example: `pacback -nc -c 1`**
+* -rm, --remove | Removes the selected Restore Point.\
+**Example: `pacback -rm 12 -nc`
 * -n, --notes | Add Custom Notes to Your Metadata File.\
 **Example: `pacback -nc -c 1 -f -n 'Here Are Some Notes'`**
 * -ih, --install_hook | Install a Pacman hook that creates a snapback restore point during each Pacman upgrade.\
@@ -60,8 +62,10 @@ Pacback offers a few core commands that streamline the process of creating and r
 **Example: `pacback --remove_hook`**
 * -i, --info | Print information about a retore point.\
 **Example: `pacback --info 1`**
-* -v, --version | Display Pacback Version.\
+* -v, --version | Display Pacback version.\
 **Example: `pacback -v`**
+* -l, --list | List information about all Restore Points.\
+**Example: `pacback -l`**
 
 
 ------------------
