@@ -46,8 +46,6 @@ Pacback offers a few core commands that streamline the process of creating and r
 **Example: `pacback --unlock_rollback`**
 
 ### Flags and Utils
-* --clean | Clean old and orphaned pacakages along with old Restore Points. Provide the number of package you want keep.\
-**Example: `pacback -rm 3`**
 * -d, --add_dir | Add any custom directories to your restore point during a `--create_rp AND --full_rp`.\
 **Example: `pacback -f -c 1 -d /dir1/to/add /dir2/to/add /dir3/to/add`**
 * -nc, --no_confirm | Skip asking user questions during RP creation. Will answer yes to all.\
@@ -60,12 +58,14 @@ Pacback offers a few core commands that streamline the process of creating and r
 **Example: `pacback --install_hook`**
 * -rh, --remove_hook | Remove the Pacman hook that creates a snapback restore point during each Pacman upgrade.\
 **Example: `pacback --remove_hook`**
+* --clean | Clean old and orphaned pacakages along with old Restore Points. Provide the number of package you want keep.\
+**Example: `pacback -rm 3`**
 * -i, --info | Print information about a retore point.\
 **Example: `pacback --info 1`**
-* -v, --version | Display Pacback version.\
-**Example: `pacback -v`**
 * -l, --list | List information about all Restore Points.\
 **Example: `pacback -l`**
+* -v, --version | Display Pacback version.\
+**Example: `pacback -v`**
 
 
 ------------------
