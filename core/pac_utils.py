@@ -288,8 +288,8 @@ def pacback_hook(install):
     PS.Start_Log('PacbackHook', log_file)
 
     if install is True:
-        PS.MK_Dir('/etc/pacman.d/hooks', sudo=True)
-        PS.Uncomment_Line_Sed('HookDir', '/etc/pacman.conf', sudo=True)
+        PS.MK_Dir('/etc/pacman.d/hooks', sudo=False)
+        PS.Uncomment_Line_Sed('HookDir', '/etc/pacman.conf', sudo=False)
         if not os.path.exists('/etc/pacman.d/hooks/pacback.hook'):
             hook = ['[Trigger]',
                     'Operation = Upgrade',
@@ -309,7 +309,7 @@ def pacback_hook(install):
             PS.Write_To_Log('InstallHook', 'Pacback Hook Was Already Installed', log_file)
 
     elif install is False:
-        PS.RM_File('/etc/pacman.d/hooks/pacback.hook', sudo=True)
+        PS.RM_File('/etc/pacman.d/hooks/pacback.hook', sudo=False)
         PS.Write_To_Log('RemoveHook', 'Removed Pacback Hook Successfully', log_file)
         PS.prSuccess('Pacback Hook Removed!')
 
@@ -335,3 +335,52 @@ def print_rp_info(num):
 
     else:
         PS.prError('No Restore Point #' + num + ' Was NOT Found!')
+
+
+def print_all_rps():
+    files = {f for f in PS.Search_FS(rp_paths, 'set')
+             if f.endswith(".meta")}
+    output_list = list()
+
+    for f in files:
+        meta = PS.Read_List(f)
+        for m in meta:
+            output = 'RP# ' + f[-7] + f[-6]
+            if m.split(':')[0] == 'Date Created':
+                date = m.split(':')[1].strip()
+                output = output + ' - Created on: ' + date
+                break
+
+        for m in meta:
+            if m.split(':')[0] == 'Packages Installed':
+                pkgs = m.split(':')[1].strip()
+                output = output + ' Packages Installed: ' + pkgs
+                break
+
+        output_list.append(str(output))
+
+    ou = sorted(output_list)
+    for o in ou:
+        PS.prSuccess(o)
+
+
+def remove_rp(rp_num, nc):
+    PS.Start_Log('RemoveRP', log_file)
+    rp = rp_paths + '/rp' + rp_num + '.meta'
+
+    if nc is False:
+        if PS.YN_Frame('Do You Want to Remove This Restore Point?') is True:
+            PS.RM_File(rp, sudo=False)
+            PS.RM_Dir(rp[:-5], sudo=False)
+            PS.prSuccess('Restore Point Removed!')
+            PS.Write_To_Log('RemoveRP', 'Removed Restore Point ' + rp_num, log_file)
+        else:
+            PS.Write_To_Log('RemoveRP', 'User Declined Removing Restore Point ' + rp_num)
+
+    elif nc is True:
+        PS.RM_File(rp, sudo=False)
+        PS.RM_Dir(rp[:-5], sudo=False)
+        PS.prSuccess('Restore Point Removed!')
+        PS.Write_To_Log('RemoveRP', 'Removed Restore Point ' + rp_num, log_file)
+
+    PS.End_Log('RemoveRP', log_file)

@@ -40,16 +40,20 @@ parser.add_argument("-ih", "--install_hook", action='store_true',
                     help="Install a Pacman hook that creates a snapback restore point during each Pacman Upgrade.")
 parser.add_argument("-rh", "--remove_hook", action='store_true',
                     help="Remove the Pacman hook that creates a snapback restore point during each Pacman Upgrade.")
-parser.add_argument("-i", "--info", metavar=('RP#'),
-                    help="Print information about a retore point.")
 parser.add_argument("-nc", "--no_confirm", action='store_true',
                     help="Skip asking user questions during RP creation. Will answer yes to all.")
-parser.add_argument("-v", "--version", action='store_true',
-                    help="Display Pacback Version.")
-parser.add_argument("-rm", "--clean", metavar=('# Versions to Keep'),
+parser.add_argument("--clean", metavar=('# Versions to Keep'),
                     help="Clean Old and Orphaned Pacakages. Provide the number of package you want keep.")
+parser.add_argument("-rm", "--remove", metavar=('RP#'),
+                    help="Remove Selected Restore Point.")
 parser.add_argument("-n", "--notes", metavar=('SOME NOTES HERE'),
                     help="Add Custom Notes to Your Metadata File.")
+parser.add_argument("-v", "--version", action='store_true',
+                    help="Display Pacback Version.")
+parser.add_argument("-i", "--info", metavar=('RP#'),
+                    help="Print information about a retore point.")
+parser.add_argument("-l", "--list", action='store_true',
+                    help="List all Created Restore Points")
 args = parser.parse_args()
 
 
@@ -70,8 +74,18 @@ if args.info:
     else:
         prError('Info Args Must Be in INT Format!')
 
-if args.clean:
-    pu.clean_cache(args.clean)
+if args.list:
+    pu.print_all_rps()
+
+if args.remove:
+    if re.findall(r'^([0-9]|0[1-9]|[1-9][0-9])$', args.remove):
+        num = str(args.remove).zfill(2)
+        pu.remove_rp(num, args.no_confirm)
+    else:
+        prError('Info Args Must Be in INT Format!')
+
+elif args.clean:
+    pu.clean_cache(args.clean, args.no_confirm)
 
 elif args.install_hook:
     pu.pacback_hook(install=True)
