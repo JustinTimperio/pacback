@@ -1,8 +1,6 @@
 # Pacback - Alpha 1.6
 **TLDR: This projects ultimate goal is to provide flexible and resilient downgrades while maintaining a slim profile and fast performance.**
 
-***Warning: [On 2019/12/27 Arch Linux will be changing its default compression method from .xz to .zst.](https://www.reddit.com/r/archlinux/comments/e7tbce/update_archdevpublic_rfc_devtools_changing) I've updated Pacback in advance and everything seems to be working correctly. If you run into any problems please submit an issue.***
-
 ### Index:
 1. [CLI Commands](https://github.com/JustinTimperio/pacback#pacback-cli-commands-and-flags)
 2. [Install](https://github.com/JustinTimperio/pacback#install-instructions)

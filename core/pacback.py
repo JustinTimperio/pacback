@@ -85,7 +85,7 @@ if args.remove:
         prError('Info Args Must Be in INT Format!')
 
 elif args.clean:
-    pu.clean_cache(args.clean, args.no_confirm)
+    pu.clean_cache(args.clean)
 
 elif args.install_hook:
     pu.pacback_hook(install=True)

@@ -48,7 +48,7 @@ def rollback_to_rp(version, rp_num):
     #####################
     rp_num = str(rp_num).zfill(2)
     rp_path = '/var/lib/pacback/restore-points/rp' + rp_num
-    rp_tar = rp_path + '/' + rp_num + '_dirs.tar'
+    rp_tar = rp_path + '/rp' + rp_num + '_dirs.tar'
     rp_meta = rp_path + '.meta'
     current_pkgs = pu.pacman_Q()
 
@@ -96,12 +96,13 @@ def rollback_to_rp(version, rp_num):
         if meta_exists is True:
             # Pass If No Packages Have Changed
             if len(changed_pkgs) > 0:
-                PS.prSuccess('No Packages Have Been Upgraded!')
-                PS.Write_To_Log('RollbackRP', 'No Packages Have Been Upgraded', log_file)
-            else:
+                PS.Write_To_Log('RollbackRP', str(len(changed_pkgs)) + ' Packages Have Been Changed', log_file)
                 found_pkgs = pu.search_paccache(m_search, pu.fetch_paccache())
                 PS.pacman(' '.join(found_pkgs), '-U')
                 PS.Write_To_Log('RollbackRP', 'Send Found Packages to pacman -U', log_file)
+            else:
+                PS.prSuccess('No Packages Have Been Changed!')
+                PS.Write_To_Log('RollbackRP', 'No Packages Have Been Changed', log_file)
 
         elif meta_exists is False:
             rp_cache = rp_path + '/pac_cache'
@@ -121,8 +122,8 @@ def rollback_to_rp(version, rp_num):
             PS.prWorking('Bulk Scanning for ' + str(len(meta_old_pkgs)) + ' Packages...')
             found_pkgs = pu.search_paccache(m_search, pu.fetch_paccache())
         else:
-            PS.prSuccess('No Packages Have Been Upgraded!')
-            PS.Write_To_Log('RollbackRP', 'No Packages Have Been Upgraded', log_file)
+            PS.prSuccess('No Packages Have Been Changed!')
+            PS.Write_To_Log('RollbackRP', 'No Packages Have Been Changed', log_file)
             found_pkgs = {}
 
         if len(changed_pkgs) == 0:
@@ -162,6 +163,7 @@ def rollback_to_rp(version, rp_num):
             PS.pacman(' '.join(added_pkgs), '-R')
             PS.Write_To_Log('RollbackRP', 'Sent Added Packages To pacman -R', log_file)
     else:
+        PS.prSuccess('No Packages Have Been Added!')
         PS.Write_To_Log('RollbackRP', 'No Packages Have Been Added Since RP Creation', log_file)
 
     ########################
@@ -191,9 +193,8 @@ def rollback_to_rp(version, rp_num):
         ################################
         diff_yn = PS.YN_Frame('Do You Want to Checksum Diff Restore Point Files Against Your Current File System?')
         if diff_yn is False:
-            print('Skipping Diff!')
             PS.Write_To_Log('RPDiff', 'User Skipped Checksumming Files', log_file)
-            PS.prWarning('OVERWRITING FILES WITHOUT CHECKSUMMING CAN BE EXTREAMLY DANGOURS!')
+            PS.prWarning('OVERWRITING FILES WITHOUT CHECKSUMMING CAN BE EXTREMELY DANGEROUS!')
 
             ow = PS.YN_Frame('Do You Still Want to Continue and Restore ALL Files?')
             if ow is False:
@@ -245,6 +246,7 @@ def rollback_to_rp(version, rp_num):
                 for l in PS.Search_FS(x):
                     src_fs.add(l)
             diff_new = src_fs.difference(rp_fs_trim)
+
             PS.Write_To_Log('RPDiff', 'Finished Comparing and Sorting Files', log_file)
 
             # Print Changed Files For User
@@ -258,45 +260,51 @@ def rollback_to_rp(version, rp_num):
             # Overwrite Files
             #################
             else:
-                ow = PS.YN_Frame('Do You Want to Automaticly Restore Changed and Missing Files?')
-                if ow is False:
-                    print('Skipping Automatic Restore! Restore Point Files Are Unpacked in ' + custom_dirs)
-                    PS.Write_To_Log('RPDiff', 'User Declined Overwrite After Skipping Diff', log_file)
-                    PS.Write_To_Log('RPDiff', 'Left Files Unpacked in ' + custom_dirs, log_file)
-
-                if ow is True:
-                    if len(diff_changed) > 0:
-                        PS.prWarning('The Following Files Have Changed:')
+                if len(diff_changed) > 0:
+                    PS.Write_To_Log('RPDiff', 'Found ' + str(len(diff_changed)) + ' Changed Files', log_file)
+                    PS.prWarning('The Following Files Have Changed:')
+                    for f in diff_changed:
+                        PS.prChanged(f)
+                    if PS.YN_Frame('Do You Want to Overwrite Files That Have Been CHANGED?') is True:
+                        PS.prWorking('Please Be Patient. This May Take a While...')
                         for f in diff_changed:
-                            PS.prChanged(f)
-                        if PS.YN_Frame('Do You Want to Overwrite Files That Have Been CHANGED?') is True:
-                            PS.prWorking('Please Be Patient. This May Take a While...')
-                            for f in diff_changed:
-                                fs = (f.split(' : ')[0])
-                                os.system('sudo cp -af ' + PS.Escape_Bash(custom_dirs + fs) + ' ' + PS.Escape_Bash(fs))
+                            fs = (f.split(' : ')[0])
+                            os.system('sudo cp -af ' + PS.Escape_Bash(custom_dirs + fs) + ' ' + PS.Escape_Bash(fs))
+                        PS.Write_To_Log('RPDiff', 'Restored Changed Files', log_file)
+                    else:
+                        PS.Write_To_Log('RPDiff', 'User Declined Restoring Files', log_file)
 
-                    if len(diff_removed) > 0:
-                        PS.prWarning('The Following Files Have Removed:')
+                if len(diff_removed) > 0:
+                    PS.Write_To_Log('RPDiff', 'Found ' + str(len(diff_removed)) + ' Removed Files', log_file)
+                    PS.prWarning('The Following Files Have Been Removed:')
+                    for f in diff_removed:
+                        PS.prRemoved(f)
+                    if PS.YN_Frame('Do You Want to Add Files That Have Been REMOVED?') is True:
+                        PS.prWorking('Please Be Patient. This May Take a While...')
                         for f in diff_removed:
-                            PS.prRemoved(f)
-                        if PS.YN_Frame('Do You Want to Add Files That Have Been REMOVED?') is True:
-                            PS.prWorking('Please Be Patient. This May Take a While...')
-                            for f in diff_removed:
-                                fs = (f.split(' : ')[0])
-                                os.system('sudo mkdir -p ' + PS.Escape_Bash('/'.join(fs.split('/')[:-1])) +
-                                          ' && sudo cp -af ' + PS.Escape_Bash(custom_dirs + fs) + ' ' + PS.Escape_Bash(fs))
+                            fs = (f.split(' : ')[0])
+                            os.system('sudo mkdir -p ' + PS.Escape_Bash('/'.join(fs.split('/')[:-1])) +
+                                      ' && sudo cp -af ' + PS.Escape_Bash(custom_dirs + fs) + ' ' + PS.Escape_Bash(fs))
+                        PS.Write_To_Log('RPDiff', 'Restored Removed Files', log_file)
+                    else:
+                        PS.Write_To_Log('RPDiff', 'User Declined Restoring Files', log_file)
 
-                    if len(diff_new) > 0:
+                if len(diff_new) > 0:
+                    PS.Write_To_Log('RPDiff', 'Found ' + str(len(diff_new)) + ' New Files', log_file)
+                    PS.prWarning('The Following Files Have Been Added:')
+                    for f in diff_new:
+                        PS.prAdded(f + ' : NEW FILE!')
+                    if PS.YN_Frame('Do You Want to Remove Files That Have Been ADDED?') is True:
                         for f in diff_new:
-                            PS.prAdded(f + ' : NEW FILE!')
-                        if PS.YN_Frame('Do You Want to Remove Files That Have Beend ADDED?') is True:
-                            PS.prWorking('Please Be Patient. This May Take a While...')
-                            for f in diff_new:
-                                fs = (f.split(' : ')[0])
-                                os.system('sudo rm ' + fs)
+                            fs = (f.split(' : ')[0])
+                            os.system('rm ' + fs)
+                        PS.Write_To_Log('RPDiff', 'Removed New Files', log_file)
+                    else:
+                        PS.Write_To_Log('RPDiff', 'User Declined Restoring Files', log_file)
 
-            PS.RM_Dir(custom_dirs, sudo=True)
-            PS.prSuccess('File Restore Complete!')
+                PS.RM_Dir(custom_dirs, sudo=True)
+                PS.Write_To_Log('RPDiff', 'Done Comparing and Restoring Files', log_file)
+                PS.prSuccess('File Diff and Restore Complete!')
 
     else:
         PS.prSuccess('Rollback to Restore Point #' + rp_num + ' Complete!')

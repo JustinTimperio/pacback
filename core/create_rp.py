@@ -27,7 +27,7 @@ def create_restore_point(version, rp_num, rp_full, dir_list, no_confirm, notes):
     # Set Base Vars
     rp_num = str(rp_num).zfill(2)
     rp_path = rp_paths + '/rp' + rp_num
-    rp_tar = rp_paths + '/rp' + rp_num + '_dirs.tar'
+    rp_tar = rp_path + '/rp' + rp_num + '_dirs.tar'
     rp_meta = rp_path + '.meta'
     found_pkgs = set()
     pac_size = 0
@@ -112,6 +112,9 @@ def create_restore_point(version, rp_num, rp_full, dir_list, no_confirm, notes):
 
     elif rp_full is False:
         PS.Write_To_Log('CreateRP', 'Creating RP #' + rp_num + ' As A Light RP', log_file)
+        if len(dir_list) > 0:
+            PS.Abort_With_Log('CreateRP', 'Custom Dirs Are Not Supported By LightRP',
+                              'Light Restore Points DO NOT Support Custom Dirs! Please Use The `-f` Flag', log_file)
         print('Building Light Restore Point...')
 
     #########################

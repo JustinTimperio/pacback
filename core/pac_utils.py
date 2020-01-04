@@ -156,20 +156,21 @@ def user_pkg_search(search_pkg, cache):
 
 
 def rollback_packages(pkg_list):
+    PS.Start_Log('RbPkgs', log_file)
     PS.prWorking('Searching File System for Packages...')
-    cache = fetch_paccache(rp_paths)
+    cache = fetch_paccache()
     PS.Write_To_Log('UserSearch', 'Started Search for ' + ' '.join(pkg_list), log_file)
 
     for pkg in pkg_list:
         found_pkgs = user_pkg_search(pkg, cache)
 
-        if found_pkgs:
-            PS.Write_To_Log('UserSearch', 'Found ' + str(len(found_pkgs)) + 'pkgs for ' + pkg, log_file)
+        if len(found_pkgs) > 0:
+            PS.Write_To_Log('UserSearch', 'Found ' + str(len(found_pkgs)) + ' pkgs for ' + pkg, log_file)
             PS.prSuccess('Pacback Found the Following Package Versions for ' + pkg + ':')
             answer = PS.Multi_Choice_Frame(found_pkgs)
 
             if answer is False:
-                PS.Write_To_Log('UserSearch', 'User Force Exited Multi_Choice_Frame - ' + pkg, log_file)
+                PS.Write_To_Log('UserSearch', 'User Force Exited Multi_Choice_Frame Selection For ' + pkg, log_file)
                 break
             for x in cache:
                 if re.findall(re.escape(answer), x):
@@ -181,6 +182,7 @@ def rollback_packages(pkg_list):
         else:
             PS.prError('No Packages Found Under the Name: ' + pkg)
             PS.Write_To_Log('UserSearch', 'Search ' + pkg.upper() + ' Returned Zero Results', log_file)
+    PS.End_Log('RbPkgs', log_file)
 
 
 #<#><#><#><#><#><#>#<#>#<#
@@ -193,7 +195,7 @@ def clean_cache(count):
     PS.prWorking('Starting Advanced Cache Cleaning...')
     if PS.YN_Frame('Do You Want To Uninstall Orphaned Packages?') is True:
         os.system('sudo pacman -R $(pacman -Qtdq)')
-        PS.Write_To_Log('CleanCache', 'Ran pacman -R $(pacman -Qtdq)', log_file)
+        PS.Write_To_Log('CleanCache', 'Ran pacman -Rns $(pacman -Qtdq)', log_file)
 
     if PS.YN_Frame('Do You Want To Remove Old Versions of Installed Packages?') is True:
         os.system('sudo paccache -rk ' + count)
