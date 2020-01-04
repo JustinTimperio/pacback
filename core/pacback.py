@@ -127,7 +127,7 @@ elif args.create_rp:
 elif args.unlock_rollback:
     pu.unlock_rollback()
 
-elif not args.info or not args.version:
+elif not args.info or not args.version or not args.list:
     pass
 
 else:

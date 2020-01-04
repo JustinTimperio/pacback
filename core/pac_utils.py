@@ -189,23 +189,23 @@ def rollback_packages(pkg_list):
 
 
 def clean_cache(count):
-    PS.Start_Log('Clean_Cache', log_file)
+    PS.Start_Log('CleanCache', log_file)
     PS.prWorking('Starting Advanced Cache Cleaning...')
     if PS.YN_Frame('Do You Want To Uninstall Orphaned Packages?') is True:
         os.system('sudo pacman -R $(pacman -Qtdq)')
-        PS.Write_To_Log('Clean_Cache', 'Ran pacman -R $(pacman -Qtdq)', log_file)
+        PS.Write_To_Log('CleanCache', 'Ran pacman -R $(pacman -Qtdq)', log_file)
 
     if PS.YN_Frame('Do You Want To Remove Old Versions of Installed Packages?') is True:
         os.system('sudo paccache -rk ' + count)
-        PS.Write_To_Log('Clean_Cache', 'Ran paccache -rk ' + count, log_file)
+        PS.Write_To_Log('CleanCache', 'Ran paccache -rk ' + count, log_file)
 
     if PS.YN_Frame('Do You Want To Remove Cached Orphans?') is True:
         os.system('sudo paccache -ruk0')
-        PS.Write_To_Log('Clean_Cache', 'Ran paccache -ruk0', log_file)
+        PS.Write_To_Log('CleanCache', 'Ran paccache -ruk0', log_file)
 
     if PS.YN_Frame('Do You Want To Check For Old Pacback Restore Points?') is True:
-        PS.Write_To_Log('Clean_Cache', 'Started Search For Old RPs', log_file)
-        metas = PS.Search_FS('/var/lib/pacback/restore-points', 'set')
+        PS.Write_To_Log('CleanCache', 'Started Search For Old RPs', log_file)
+        metas = PS.Search_FS(rp_paths, 'set')
         rps = {f for f in metas if f.endswith(".meta")}
 
         for m in rps:
@@ -232,11 +232,11 @@ def clean_cache(count):
                     PS.RM_File(m, sudo=True)
                     PS.RM_Dir(m[:-5], sudo=True)
                     PS.prSuccess('Restore Point Removed!')
-                    PS.Write_To_Log('Clean_Cache', 'Removed RP ' + rp_num, log_file)
+                    PS.Write_To_Log('CleanCache', 'Removed RP ' + rp_num, log_file)
             PS.prSuccess(rp_num + ' Is Only ' + str(days) + ' Days Old!')
-            PS.Write_To_Log('Clean_Cache', 'RP ' + rp_num + ' Was Less Than 180 Days 0ld', log_file)
+            PS.Write_To_Log('CleanCache', 'RP ' + rp_num + ' Was Less Than 180 Days 0ld', log_file)
 
-    PS.End_Log('Clean_Cache', log_file)
+    PS.End_Log('CleanCache', log_file)
 
 
 #<#><#><#><#><#><#>#<#>#<#
@@ -290,23 +290,19 @@ def pacback_hook(install):
     if install is True:
         PS.MK_Dir('/etc/pacman.d/hooks', sudo=False)
         PS.Uncomment_Line_Sed('HookDir', '/etc/pacman.conf', sudo=False)
-        if not os.path.exists('/etc/pacman.d/hooks/pacback.hook'):
-            hook = ['[Trigger]',
-                    'Operation = Upgrade',
-                    'Type = Package',
-                    'Target = *',
-                    '',
-                    '[Action]',
-                    'Description = Pre-Upgrade Pacback Hook',
-                    'Depends = pacman',
-                    'When = PreTransaction',
-                    'Exec = /usr/bin/pacback --hook']
-            PS.Export_List('/etc/pacman.d/hooks/pacback.hook', hook)
-            PS.prSuccess('Pacback Hook is Now Installed!')
-            PS.Write_To_Log('InstallHook', 'Installed Pacback Hook Successfully', log_file)
-        else:
-            PS.prSuccess('Pacback Hook is Already Installed!')
-            PS.Write_To_Log('InstallHook', 'Pacback Hook Was Already Installed', log_file)
+        hook = ['[Trigger]',
+                'Operation = Upgrade',
+                'Type = Package',
+                'Target = *',
+                '',
+                '[Action]',
+                'Description = Pre-Upgrade Pacback Hook',
+                'Depends = pacman',
+                'When = PreTransaction',
+                'Exec = /usr/bin/pacback --hook']
+        PS.Export_List('/etc/pacman.d/hooks/pacback.hook', hook)
+        PS.prSuccess('Pacback Hook is Now Installed!')
+        PS.Write_To_Log('InstallHook', 'Installed Pacback Hook Successfully', log_file)
 
     elif install is False:
         PS.RM_File('/etc/pacman.d/hooks/pacback.hook', sudo=False)
@@ -314,6 +310,7 @@ def pacback_hook(install):
         PS.prSuccess('Pacback Hook Removed!')
 
     PS.End_Log('PacbackHook', log_file)
+
 
 #<#><#><#><#><#><#>#<#>#<#
 #<># Show RP Info

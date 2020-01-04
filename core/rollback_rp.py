@@ -164,30 +164,56 @@ def rollback_to_rp(version, rp_num):
     else:
         PS.Write_To_Log('RollbackRP', 'No Packages Have Been Added Since RP Creation', log_file)
 
-    ##########################
-    # Diff Restore Point Files
-    ##########################
+    ########################
+    # Stage Custom File Diff
+    ########################
     if len(meta_dirs) > 0:
+        PS.Write_To_Log('RollbackRP', 'Custom Dirs Specified in RP Meta File', log_file)
         custom_dirs = rp_tar[:-4]
         if os.path.exists(rp_tar + '.gz'):
             PS.prWorking('Decompressing Restore Point....')
             if any(re.findall('pigz', line.lower()) for line in current_pkgs):
                 os.system('pigz -d ' + rp_tar + '.gz -f')
+                PS.Write_To_Log('RPDiff', 'Decompressed Custom Files With Pigz', log_file)
             else:
                 PS.GZ_D(rp_tar + '.gz')
+                PS.Write_To_Log('RPDiff', 'Decompressed Custom Files With Python', log_file)
 
         if os.path.exists(custom_dirs):
             PS.RM_Dir(custom_dirs, sudo=True)
 
         PS.prWorking('Unpacking Files from Restore Point Tar....')
         PS.Untar_Dir(rp_tar)
+        PS.Write_To_Log('RPDiff', 'Unpacked Custom Files RP Tar', log_file)
 
+        ################################
+        # Restore Files Without Checksum
+        ################################
         diff_yn = PS.YN_Frame('Do You Want to Checksum Diff Restore Point Files Against Your Current File System?')
         if diff_yn is False:
             print('Skipping Diff!')
-            pass
+            PS.Write_To_Log('RPDiff', 'User Skipped Checksumming Files', log_file)
+            PS.prWarning('OVERWRITING FILES WITHOUT CHECKSUMMING CAN BE EXTREAMLY DANGOURS!')
 
+            ow = PS.YN_Frame('Do You Still Want to Continue and Restore ALL Files?')
+            if ow is False:
+                PS.Write_To_Log('RPDiff', 'User Declined Overwrite After Skipping Diff', log_file)
+                print('Skipping! Restore Point Files Are Unpacked in ' + custom_dirs)
+                PS.Write_To_Log('RPDiff', 'Left Files Unpacked in ' + custom_dirs, log_file)
+
+            elif ow is True:
+                print('Starting Full File Restore! Please Be Patient As All Files are Overwritten...')
+                rp_fs = PS.Search_FS(custom_dirs)
+                for f in rp_fs:
+                    PS.prWorking('Please Be Patient. This May Take a While...')
+                    os.system('sudo mkdir -p ' + PS.Escape_Bash('/'.join(f.split('/')[:-1])) +
+                              ' && sudo cp -af ' + PS.Escape_Bash(f) + ' ' + PS.Escape_Bash(f[len(custom_dirs):]))
+
+        ############################
+        # Checksum and Compare Files
+        ############################
         elif diff_yn is True:
+            PS.Write_To_Log('RPDiff', 'Started Checksumming Custom Files', log_file)
             rp_fs = PS.Search_FS(custom_dirs)
             rp_fs_trim = set(path[len(custom_dirs):] for path in PS.Search_FS(custom_dirs))
 
@@ -197,8 +223,10 @@ def rollback_to_rp(version, rp_num):
                                             total=len(rp_fs), desc='Checksumming Restore Point Files'))
                 sf_checksum = set(tqdm.tqdm(pool.imap(PS.Checksum_File, rp_fs_trim),
                                             total=len(rp_fs_trim), desc='Checksumming Source Files'))
+            PS.Write_To_Log('RPDiff', 'Finished Checksumming Custom Files', log_file)
 
             # Compare Checksums For Files That Exist
+            PS.Write_To_Log('RPDiff', 'Starting Sorting and Comparing Files', log_file)
             rp_csum_trim = set(path[len(custom_dirs):] for path in rp_checksum)
             rp_diff = sf_checksum.difference(rp_csum_trim)
 
@@ -217,65 +245,58 @@ def rollback_to_rp(version, rp_num):
                 for l in PS.Search_FS(x):
                     src_fs.add(l)
             diff_new = src_fs.difference(rp_fs_trim)
+            PS.Write_To_Log('RPDiff', 'Finished Comparing and Sorting Files', log_file)
 
             # Print Changed Files For User
             if len(diff_changed) + len(diff_new) + len(diff_removed) == 0:
+                PS.Write_To_Log('RPDiff', 'Checksum Returned Zero Changed Files', log_file)
                 PS.RM_Dir(custom_dirs, sudo=True)
-                return PS.prSuccess('No Files Have Been Changed!')
+                PS.Write_To_Log('RPDiff', 'Cleaned Up Files and Completed Successfully', log_file)
+                PS.prSuccess('No Files Have Been Changed!')
 
-        #################
-        # Overwrite Files
-        #################
-        if diff_yn is False:
-            PS.prWarning('YOU HAVE NOT CHECKSUMED THE RESTORE POINT! OVERWRITING ALL FILES CAN BE EXTREAMLY DANGOURS!')
-            ow = PS.YN_Frame('Do You Still Want to Continue and Restore ALL Files In the Restore Point?')
-            if ow is False:
-                return print('Skipping Automatic File Restore! Restore Point Files Are Unpacked in ' + custom_dirs)
+            #################
+            # Overwrite Files
+            #################
+            else:
+                ow = PS.YN_Frame('Do You Want to Automaticly Restore Changed and Missing Files?')
+                if ow is False:
+                    print('Skipping Automatic Restore! Restore Point Files Are Unpacked in ' + custom_dirs)
+                    PS.Write_To_Log('RPDiff', 'User Declined Overwrite After Skipping Diff', log_file)
+                    PS.Write_To_Log('RPDiff', 'Left Files Unpacked in ' + custom_dirs, log_file)
 
-            elif ow is True:
-                print('Starting Full File Restore! Please Be Patient As All Files are Overwritten...')
-                rp_fs = PS.Search_FS(custom_dirs)
-                for f in rp_fs:
-                    PS.prWorking('Please Be Patient. This May Take a While...')
-                    os.system('sudo mkdir -p ' + PS.Escape_Bash('/'.join(f.split('/')[:-1])) + ' && sudo cp -af ' + PS.Escape_Bash(f) + ' ' + PS.Escape_Bash(f[len(custom_dirs):]))
-
-        elif diff_yn is True:
-            ow = PS.YN_Frame('Do You Want to Automaticly Restore Changed and Missing Files?')
-            if ow is False:
-                return print('Skipping Automatic Restore! Restore Point Files Are Unpacked in ' + custom_dirs)
-
-            if ow is True:
-                if len(diff_changed) > 0:
-                    PS.prWarning('The Following Files Have Changed:')
-                    for f in diff_changed:
-                        PS.prChanged(f)
-                    if PS.YN_Frame('Do You Want to Overwrite Files That Have Been CHANGED?') is True:
-                        PS.prWorking('Please Be Patient. This May Take a While...')
+                if ow is True:
+                    if len(diff_changed) > 0:
+                        PS.prWarning('The Following Files Have Changed:')
                         for f in diff_changed:
-                            fs = (f.split(' : ')[0])
-                            os.system('sudo cp -af ' + PS.Escape_Bash(custom_dirs + fs) + ' ' + PS.Escape_Bash(fs))
+                            PS.prChanged(f)
+                        if PS.YN_Frame('Do You Want to Overwrite Files That Have Been CHANGED?') is True:
+                            PS.prWorking('Please Be Patient. This May Take a While...')
+                            for f in diff_changed:
+                                fs = (f.split(' : ')[0])
+                                os.system('sudo cp -af ' + PS.Escape_Bash(custom_dirs + fs) + ' ' + PS.Escape_Bash(fs))
 
-            if len(diff_removed) > 0:
-                PS.prWarning('The Following Files Have Removed:')
-                for f in diff_removed:
-                    PS.prRemoved(f)
-                if PS.YN_Frame('Do You Want to Add Files That Have Been REMOVED?') is True:
-                    PS.prWorking('Please Be Patient. This May Take a While...')
-                    for f in diff_removed:
-                        fs = (f.split(' : ')[0])
-                        os.system('sudo mkdir -p ' + PS.Escape_Bash('/'.join(fs.split('/')[:-1])) + ' && sudo cp -af ' + PS.Escape_Bash(custom_dirs + fs) + ' ' + PS.Escape_Bash(fs))
+                    if len(diff_removed) > 0:
+                        PS.prWarning('The Following Files Have Removed:')
+                        for f in diff_removed:
+                            PS.prRemoved(f)
+                        if PS.YN_Frame('Do You Want to Add Files That Have Been REMOVED?') is True:
+                            PS.prWorking('Please Be Patient. This May Take a While...')
+                            for f in diff_removed:
+                                fs = (f.split(' : ')[0])
+                                os.system('sudo mkdir -p ' + PS.Escape_Bash('/'.join(fs.split('/')[:-1])) +
+                                          ' && sudo cp -af ' + PS.Escape_Bash(custom_dirs + fs) + ' ' + PS.Escape_Bash(fs))
 
-            if len(diff_new) > 0:
-                for f in diff_new:
-                    PS.prAdded(f + ' : NEW FILE!')
-                if PS.YN_Frame('Do You Want to Remove Files That Have Beend ADDED?') is True:
-                    PS.prWorking('Please Be Patient. This May Take a While...')
-                    for f in diff_new:
-                        fs = (f.split(' : ')[0])
-                        os.system('sudo rm ' + fs)
+                    if len(diff_new) > 0:
+                        for f in diff_new:
+                            PS.prAdded(f + ' : NEW FILE!')
+                        if PS.YN_Frame('Do You Want to Remove Files That Have Beend ADDED?') is True:
+                            PS.prWorking('Please Be Patient. This May Take a While...')
+                            for f in diff_new:
+                                fs = (f.split(' : ')[0])
+                                os.system('sudo rm ' + fs)
 
-        PS.RM_Dir(custom_dirs, sudo=True)
-        PS.prSuccess('File Restore Complete!')
+            PS.RM_Dir(custom_dirs, sudo=True)
+            PS.prSuccess('File Restore Complete!')
 
     else:
         PS.prSuccess('Rollback to Restore Point #' + rp_num + ' Complete!')
