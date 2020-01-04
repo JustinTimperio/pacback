@@ -26,7 +26,7 @@ def pre_fligh_check():
         PS.prWorking('Migrating Your Restore Point Folder Now...')
         PS.MK_Dir('/var/lib/pacback', sudo=False)
         os.system('mv ' + old_rp_path + ' /var/lib/pacback')
-        os.system('chown root:root /var/lib/pacback && sudo chmod 700 /var/lib/pacback')
+        os.system('chown root:root /var/lib/pacback && chmod 700 /var/lib/pacback')
         PS.Write_To_Log('PreFlight', 'Pacback Successfully Migrated To /var/lib/pacback', log_file)
 
 
