@@ -61,7 +61,7 @@ args = parser.parse_args()
 #<># Args Flow Control
 #<#><#><#><#><#><#>#<#>#<#
 
-version = '1.6.0'
+version = '1.6.1'
 vc.pre_fligh_check()
 
 if args.version:
