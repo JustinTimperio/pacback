@@ -69,9 +69,11 @@ Pacback offers a few core commands that streamline the process of creating and r
 ------------------
 
 ## Install Instructions:
-1. `git clone --recurse-submodules https://github.com/JustinTimperio/pacback.git`
-2. `pacman -S python-tqdm arch-install-scripts`
-3. `sudo ln -s /dir/to/pacback/core/pacback.py /usr/bin/pacback`
+Pacback offers two AUR packages. (Special thanks to [Attila Greguss](https://github.com/Gr3q) for maintaining them.)
+
+[pacback](https://aur.archlinux.org/packages/pacback): This is the recommend install for most users. Releases mark stable points in Pacbacks development, preventing unnecessary upgrades/changes that may indroduce instability into production machines. 
+
+[pacback-git](https://aur.archlinux.org/packages/pacback-git): This package fetches the latest version from git, placing you at the head of development. The master branch will be unstable periodically but is ideal for anyone looking to contribute to pacbacks development or if you want access to the lastest features and patches.
 
 ------------------
 
@@ -112,7 +114,7 @@ In this example we pack up an Apache websever and Postgresql database.
 ![Pacback Saving App Data](https://imgur.com/Ag0NROG.gif)
 
 ### Rollback a List of Packages 
-Most issues with an update stem from a single package or a set of related packages. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`. Packback searches your file system looking for all versions associated with each package name. When searching for a package, Pacback will do its best to avoid clutter when a name is used in many packages (I.E. xorg-server, xorg-docs, xorg-xauth). If no packages are found you can extend the search but you will need sort through some clutter.
+Most issues introduced by an upgrade stem from a single package or a set of related packages. Pacback allows you to selectively rollback a list of packages using `pacback -pkg package_1 package_2 package_3`. Packback searches your file system looking for all versions associated with each package name. When searching for a package, Pacback will do its best to avoid matching generic names used in many packages (I.E. xorg in xorg-server, xorg-docs, xorg-xauth). If no packages are found you can extend the search but you will need to sort through some inaccurate results.
 
 In this example, we selectively rollback 2 packages.
 1. `pacback -pkg typescript electron`
@@ -120,7 +122,7 @@ In this example, we selectively rollback 2 packages.
 ![Pacback Rolling Back a List of Packages](https://imgur.com/Rhy6iDn.gif)
 
 ### Rolling Back to an Archive Date
-Another popular way to rollback package versions is to use the Arch Linux Archives to pull packages directly with pacman. Pacback automates this entire process with the `pacback -rb` command. To rollback to a specific date, give `-rb` a date in YYYY/MM/DD format and Pacback will automatically save your mirrorlist, point a new mirrorlist to an archive URL, then run a full system downgrade. When every you are ready to jump back to the head, run `pacback -u` and Pacback with automatically retore your old mirrorlist. If you destroy this backup, Pacback can automatically fetch a new HTTP US mirrorlist for the system.
+Another popular way to rollback package versions is to fetch packages directly from the Arch Linux Archives using pacman. Pacback automates this entire process with the `pacback -rb` command. To rollback to a specific date, give `-rb` a date in YYYY/MM/DD format and Pacback will automatically save your mirrorlist, point a new mirrorlist to an archive URL, then run a full system downgrade. When you are ready to jump back to head, run `pacback -u` and Pacback with automatically retore your old mirrorlist. If you destroy this backup, Pacback can automatically fetch a new HTTP US mirrorlist for the system.
 
 1. `pacback -rb 2019/10/18`
 
@@ -129,16 +131,15 @@ Another popular way to rollback package versions is to use the Arch Linux Archiv
 ------------------------
 
 ## Pacback's Design:
-Pacback is written entirely in python3 and attempts to use as few pip packages as possible (currently only tqdm is needed). Pacback offers a number of utilities that primarily use two core restore methods: **Full and Light Restore Points.** These two types of restore points offer different drawbacks and advantages as you will see below.
+Pacback is written entirely in python3 and attempts to implement most features natively. This means fast performance and few pip package requirements(only python-tqdm is used). Since its release, Pacback has been extensively streamlined, resulting in near-instant user feedback. Costly string comparisons and regex filters have been multi-threaded, which has greatly reduced each session's overall runtime. On my laptop, generating a light restore point usually takes ~180 milliseconds. Rolling back to the same restore point is a lengthier process, but still only clocks in at 700-900 milliseconds.
 
-Since its release, Pacback has been extensively streamlined, resulting in near-instant user feedback. Costly string comparisons and regex filters have been multi-threaded, which has greatly reduced each session's overall runtime. If you have less than 4 cores, operations will likely see some performance degradation.
-On my laptop, generating a light restore point usually takes ~180 milliseconds. Rolling back to the same restore point is a lengthier process, but still only clocks in at 700-900 milliseconds.
+Pacback offers a number of utilities that primarily use two core restore methods: **Full and Light Restore Points.** These two types of restore points offer different drawbacks and advantages as you will see below.
 
 ### Light Restore Points
 By default, Pacback creates a Light Restore Point which consists of only a .meta file. When you fall back on this restore point, Pacback will search your file system looking for old versions specified in the .meta file. If you have not cleared your cache or are rolling back a recent upgrade, Light Restore Points provide extremely fast and effective rollbacks. 
 
 **Light Restore Point Advantages:**
- - Light RP's are Extremely Small (~ 25KB)
+ - Light RP's are Extremely Small (~25KB)
  - Generating a Light RP's is Fast (~200 milliseconds)
  - Low Overhead Means No Impact on Pacman Upgrade Times
 
@@ -187,7 +188,7 @@ This list is likely to have many changes and edits as new versions are released.
 If you run into any errors or are about to submit a bug, please check your log file located in '/var/log/pacback.log'.
 
 ### Issues:
-- **Pacback Skips Checksumming Files over 5GB.** - This is done for several reasons. First, Python sucks at reading large files. In my testing, checksumming took 30x-50x longer compared to the terminal equivalent. Second, storing and comparing large files is not really Pacback's use-case. Packaging directories is intended for saving the state of potentially thousands of small configuration files, not large archives or databases. 
+- **Pacback Skips Checksumming Files over 5GB.** - This is done for several reasons. First, Python sucks at reading large files. In my testing, checksumming took 30x-50x longer compared to the terminal equivalent. Second, storing and comparing large files is not really Pacback's use-case. Packaging directories into an restore point is intended for saving the state of potentially thousands of small configuration files, not large archives or databases. 
 
 - **Pacback Creates Missing Directories as Root.** - Currently files are copied out of the restore point with the exact same permissions they went in with. The issue here is the creation of missing directories. When Pacback creates these directories the original permissions are not copied. 
 
@@ -204,6 +205,6 @@ If you run into any errors or are about to submit a bug, please check your log f
 - [x] Fix Checksumming
 - [ ] Fix Directory Creation
 - [ ] Better Color Output
-- [ ] AUR Package
-- [ ] Archive Support for Single Non-Cached Package Versions
-- [ ] Improve Internal Documentation
+- [x] AUR Package
+- [ ] Support for Fetching Single Non-Cached Package Versions
+- [ ] Improved Internal Documentation
