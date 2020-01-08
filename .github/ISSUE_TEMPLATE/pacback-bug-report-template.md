@@ -1,13 +1,13 @@
 ---
 name: Pacback Bug Report Template
-about: Create a report to help us improve
-title: ''
+about: Basic Bug Template
+title: 'Bug Title'
 labels: ''
 assignees: JustinTimperio
 
 ---
 
-**Describe the bug**
+**Describe the Bug:**\
 A clear and concise description of what the bug is.
 
 **Output of Command**
@@ -15,10 +15,10 @@ A clear and concise description of what the bug is.
 - Log output in /var/log/pacback.log
 
 **Machine (please fill in the following information):**
- - Kernel Version: [`uname -r`]
- - Python Version: [`python3 --version`]
- - Install Type: [pacback vs pacback-git vs git repo]
- - Pacback Version: [`sudo pacback -v`]
+ - Kernel Version: (`uname -r`)
+ - Python Version: (`python3 --version`)
+ - Install Type: (pacback vs pacback-git vs git repo)
+ - Pacback Version: (`sudo pacback -v`)
 
 
 **To Reproduce**
