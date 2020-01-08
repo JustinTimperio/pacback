@@ -16,11 +16,12 @@ I love Arch Linux and rolling-release distros. Being at the head of Linux kernel
 
 - Instant Rollback of -Syu Upgrades
 - The Ability to Track All Additions, Removals, and Upgrades Made to the System
+- Rollback to Arch Archive Dates
 - Native AUR Support
 - Automatically Save and Restore App Config Files
 - FailProof Rollbacks Even When Caches Are Deleted
-- Multi-Threaded File Checksumming and Restore Point Compression
-- Rollback to Arch Archive Dates
+- Multi-Threaded Operations
+
 
 -------------------
 
