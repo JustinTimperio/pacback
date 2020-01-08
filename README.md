@@ -80,9 +80,9 @@ Pacback offers two AUR packages. (Special thanks to [Attila Greguss](https://git
 If you are upgrading from a cloned git repo please follow these steps.
 1. `cd /path/to/repo`
 2. `git pull && git submodule update --recursive --init` (Upgrade before migration)
-3. `sudo pacback -l` (Running this also initiates a check that confirms everything is configured)
+3. `sudo pacback -l` (This also initiates a check that confirms everything is configured)
 4. `sudo rm /usr/bin/pacback` (Remove the old symlink)
-5. `pacaur -S pacback`
+5. `pacaur -S pacback` (Install pacback with an AUR Manager)
 6. `sudo rm -R /path/to/repo` (Remome now unused git repo)
 
 

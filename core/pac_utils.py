@@ -156,6 +156,7 @@ def user_pkg_search(search_pkg, cache):
 
 
 def rollback_packages(pkg_list):
+    '''Allows User to Rollback Any Number of Packages By Name'''
     PS.Start_Log('RbPkgs', log_file)
     PS.prWorking('Searching File System for Packages...')
     cache = fetch_paccache()
@@ -191,6 +192,7 @@ def rollback_packages(pkg_list):
 
 
 def clean_cache(count):
+    '''Automated Cache Cleaning Using pacman, paccache, and pacback.'''
     PS.Start_Log('CleanCache', log_file)
     PS.prWorking('Starting Advanced Cache Cleaning...')
     if PS.YN_Frame('Do You Want To Uninstall Orphaned Packages?') is True:
@@ -247,6 +249,7 @@ def clean_cache(count):
 
 
 def unlock_rollback():
+    '''Restores Mirrorlist in /etc/pacman.d/mirrorlist Which Releases Archive Date Rollback'''
     PS.Start_Log('UnlockRollback', log_file)
     # Check if mirrorlist is locked
     if len(PS.Read_List('/etc/pacman.d/mirrorlist')) == 1:
@@ -347,13 +350,13 @@ def print_all_rps():
             output = 'RP# ' + f[-7] + f[-6]
             if m.split(':')[0] == 'Date Created':
                 date = m.split(':')[1].strip()
-                output = output + ' - Created on: ' + date
+                output = output + ' - ' + date
                 break
 
         for m in meta:
             if m.split(':')[0] == 'Packages Installed':
                 pkgs = m.split(':')[1].strip()
-                output = output + ' Packages Installed: ' + pkgs
+                output = output + ' - Packages Installed: ' + pkgs
                 break
 
         output_list.append(str(output))
