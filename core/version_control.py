@@ -13,17 +13,21 @@ rp_paths = '/var/lib/pacback/restore-points'
 #<># Version Control
 #<#><#><#><#><#><#>#<#>#<#
 
-def pre_fligh_check():
-    if not os.getuid() == 0:
-        PS.Start_Log('PreFlight', log_file)
-        PS.Abort_With_Log('PreFlight', 'Not Root!', 'Pacback Must Be Run With Sudo OR As Root!', log_file)
 
+def check_if_root():
+    if not os.getuid() == 0:
+        PS.Start_Log('RootCheck', log_file)
+        PS.Abort_With_Log('RootCheck', 'Not Root!', 'Pacback Must Be Run With Sudo OR As Root!', log_file)
+
+
+def pre_fligh_check():
     base_dir = os.path.dirname(os.path.realpath(__file__))[:-5]
     old_rp_path = base_dir + '/restore-points'
     if os.path.exists(old_rp_path):
         PS.Start_Log('PreFlight', log_file)
         PS.prError('Looks Like You Are Upgrading From A Version Before 1.6!')
         PS.prWorking('Migrating Your Restore Point Folder Now...')
+        check_if_root()
         PS.MK_Dir('/var/lib/pacback', sudo=False)
         os.system('mv ' + old_rp_path + ' /var/lib/pacback')
         os.system('chown root:root /var/lib/pacback && chmod 700 /var/lib/pacback')
