@@ -160,29 +160,33 @@ def rollback_packages(pkg_list):
     PS.Start_Log('RbPkgs', log_file)
     PS.prWorking('Searching File System for Packages...')
     cache = fetch_paccache()
+    pkg_paths = list()
     PS.Write_To_Log('UserSearch', 'Started Search for ' + ' '.join(pkg_list), log_file)
 
     for pkg in pkg_list:
         found_pkgs = user_pkg_search(pkg, cache)
+        sort_pkgs = sorted(found_pkgs, reverse=True)
 
         if len(found_pkgs) > 0:
             PS.Write_To_Log('UserSearch', 'Found ' + str(len(found_pkgs)) + ' pkgs for ' + pkg, log_file)
             PS.prSuccess('Pacback Found the Following Package Versions for ' + pkg + ':')
-            answer = PS.Multi_Choice_Frame(found_pkgs)
+            answer = PS.Multi_Choice_Frame(sort_pkgs)
 
             if answer is False:
-                PS.Write_To_Log('UserSearch', 'User Force Exited Multi_Choice_Frame Selection For ' + pkg, log_file)
-                break
-            for x in cache:
-                if re.findall(re.escape(answer), x):
-                    path = x
-
-            PS.pacman(path, '-U')
-            PS.Write_To_Log('UserSearch', 'Sent -U ' + path + ' to Pacman', log_file)
+                PS.Write_To_Log('UserSearch', 'User Force Exited Selection For ' + pkg, log_file)
+            else:
+                for x in cache:
+                    if re.findall(re.escape(answer), x):
+                        path = x
+                        pkg_paths.append(path)
+                        break
 
         else:
             PS.prError('No Packages Found Under the Name: ' + pkg)
             PS.Write_To_Log('UserSearch', 'Search ' + pkg.upper() + ' Returned Zero Results', log_file)
+
+    PS.pacman(' '.join(pkg_paths), '-U')
+    PS.Write_To_Log('UserSearch', 'Sent ' + ' '.join(pkg_paths) + ' to Pacman -U', log_file)
     PS.End_Log('RbPkgs', log_file)
 
 
@@ -318,7 +322,7 @@ def pacback_hook(install):
 
 
 #<#><#><#><#><#><#>#<#>#<#
-#<># Show RP Info
+#<># RP Management
 #<#><#><#><#><#><#>#<#>#<#
 
 
