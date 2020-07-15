@@ -10,41 +10,13 @@ import pac_utils as pu
 log_file = '/var/log/pacback.log'
 rp_paths = '/var/lib/pacback/restore-points'
 
-class RestorePointMeta:
-    @staticmethod
-    def is_num_valid(input):
-        return bool(re.findall(r'^([1-9]|0[1-9]|[1-9][0-9])$', input))
-
-    @staticmethod
-    def is_date_valid(input):
-        return bool(re.findall(r'^(?:[0-9]{2})?[0-9]{2}/[0-3]?[0-9]/(?:[0-9]{2})?[0-9]{2}$', input))
-
-    @staticmethod
-    def find_next_unused(rp_num, rp_full):
-        n = int(rp_num)
-        while True:
-            rp = RestorePointMeta(n, rp_full)
-            if not rp.exists():
-                break
-            n += 1
-
-        return rp
-
-    def __init__(self, rp_num, rp_full):
-        self.full = rp_full
-        self.num = str(rp_num).zfill(2)
-        self.path = rp_paths + '/rp' + self.num
-        self.tar = self.path + '/rp' + self.num + '_dirs.tar'
-        self.meta = self.path + '.meta'
-
-    def exists(self):
-        return os.path.exists(self.path) or os.path.exists(self.meta)
 
 #<#><#><#><#><#><#>#<#>#<#
 #<># Create Restore Point
 #<#><#><#><#><#><#>#<#>#<#
 
-def create_restore_point(version, rp, dir_list, no_confirm, notes):
+
+def create_restore_point(version, rp_num, rp_full, dir_list, no_confirm, notes):
     PS.Start_Log('CreateRP', log_file)
     # Fail Safe for New Users
     if os.path.exists(rp_paths) is False:
@@ -53,32 +25,36 @@ def create_restore_point(version, rp, dir_list, no_confirm, notes):
         PS.Write_To_Log('CreateRP', 'Created Base RP Folder in /var/lib', log_file)
 
     # Set Base Vars
+    rp_num = str(rp_num).zfill(2)
+    rp_path = rp_paths + '/rp' + rp_num
+    rp_tar = rp_path + '/rp' + rp_num + '_dirs.tar'
+    rp_meta = rp_path + '.meta'
     found_pkgs = set()
     pac_size = 0
 
     # Check for Existing Restore Points
-    if rp.exists():
+    if os.path.exists(rp_path) or os.path.exists(rp_meta):
         if no_confirm is False:
-            if int(rp.num) != 0:
-                PS.prWarning('Restore Point #' + rp.num + ' Already Exists!')
+            if int(rp_num) != 0:
+                PS.prWarning('Restore Point #' + rp_num + ' Already Exists!')
                 if PS.YN_Frame('Do You Want to Overwrite It?') is False:
-                    PS.Abort_With_Log('CreateRP', 'User Aborted Overwrite of RP #' + rp.num, 'Aborting!', log_file)
+                    PS.Abort_With_Log('CreateRP', 'User Aborted Overwrite of RP #' + rp_num, 'Aborting!', log_file)
 
-        PS.RM_File(rp.meta, sudo=False)
-        PS.RM_Dir(rp.path, sudo=False)
-        PS.Write_To_Log('CreateRP', 'Removed RP #' + rp.num + ' During Overwrite', log_file)
+        PS.RM_File(rp_meta, sudo=False)
+        PS.RM_Dir(rp_path, sudo=False)
+        PS.Write_To_Log('CreateRP', 'Removed RP #' + rp_num + ' During Overwrite', log_file)
 
     ###########################
     # Full Restore Point Branch
     ###########################
-    if rp.full is True:
-        PS.Write_To_Log('CreateRP', 'Creating RP #' + rp.num + ' As Full RP', log_file)
+    if rp_full is True:
+        PS.Write_To_Log('CreateRP', 'Creating RP #' + rp_num + ' As Full RP', log_file)
         print('Building Full Restore Point...')
 
         # Set Vars For Full RP
         dir_size = 0
         rp_files = set()
-        pac_cache = rp.path + '/pac_cache'
+        pac_cache = rp_path + '/pac_cache'
 
         PS.prWorking('Retrieving Current Packages...')
         pkg_search = pu.pacman_Q(replace_spaces=True)
@@ -91,7 +67,7 @@ def create_restore_point(version, rp, dir_list, no_confirm, notes):
         # Ask About Missing Pkgs
         if len(found_pkgs) != len(pkg_search):
             PS.Write_To_Log('CreateRP', 'Not All Packages Where Found', log_file)
-            if int(rp.num) != 0:
+            if int(rp_num) != 0:
                 if no_confirm is False:
                     pkg_split = pu.trim_pkg_list(found_pkgs)
                     PS.prError('The Following Packages Where NOT Found!')
@@ -101,7 +77,7 @@ def create_restore_point(version, rp, dir_list, no_confirm, notes):
                         PS.Abort_With_Log('CreateRP', 'User Aborted Due to Missing Pkgs', 'Aborting!', log_file)
 
         # HardLink Packages to RP
-        PS.MK_Dir(rp.path, sudo=False)
+        PS.MK_Dir(rp_path, sudo=False)
         PS.MK_Dir(pac_cache, sudo=False)
         for pkg in tqdm.tqdm(found_pkgs, desc='Hardlinking Packages to Pacback RP'):
             os.system('sudo ln ' + pkg + ' ' + pac_cache + '/' + pkg.split('/')[-1])
@@ -120,7 +96,7 @@ def create_restore_point(version, rp, dir_list, no_confirm, notes):
                     rp_files.add(f)
 
             # Pack Custom Folders Into a Tar
-            with tarfile.open(rp.tar, 'w') as tar:
+            with tarfile.open(rp_tar, 'w') as tar:
                 for f in tqdm.tqdm(rp_files, desc='Adding Dir\'s to Tar'):
                     tar.add(f)
             PS.Write_To_Log('CreateRP', 'Tar Created For Custom RP Files', log_file)
@@ -129,13 +105,13 @@ def create_restore_point(version, rp, dir_list, no_confirm, notes):
             if dir_size > 1073741824:
                 PS.prWorking('Compressing Restore Point Files...')
                 if any(re.findall('pigz', l.lower()) for l in pkg_search):
-                    os.system('pigz ' + rp.tar + ' -f')
+                    os.system('pigz ' + rp_tar + ' -f')
                 else:
-                    PS.GZ_C(rp.tar, rm=True)
+                    PS.GZ_C(rp_tar, rm=True)
                 PS.Write_To_Log('CreateRP', 'Compressed Custom Files RP Tar', log_file)
 
-    elif rp.full is False:
-        PS.Write_To_Log('CreateRP', 'Creating RP #' + rp.num + ' As A Light RP', log_file)
+    elif rp_full is False:
+        PS.Write_To_Log('CreateRP', 'Creating RP #' + rp_num + ' As A Light RP', log_file)
         if len(dir_list) > 0:
             PS.Abort_With_Log('CreateRP', 'Custom Dirs Are Not Supported By LightRP',
                               'Light Restore Points DO NOT Support Custom Dirs! Please Use The `-f` Flag', log_file)
@@ -145,7 +121,7 @@ def create_restore_point(version, rp, dir_list, no_confirm, notes):
     # Generate Meta Data File
     #########################
     current_pkgs = pu.pacman_Q()
-    meta_list = ['====== Pacback RP #' + rp.num + ' ======',
+    meta_list = ['====== Pacback RP #' + rp_num + ' ======',
                  'Pacback Version: ' + version,
                  'Date Created: ' + dt.datetime.now().strftime("%Y/%m/%d"),
                  'Packages Installed: ' + str(len(current_pkgs)),
@@ -169,7 +145,7 @@ def create_restore_point(version, rp, dir_list, no_confirm, notes):
         meta_list.append(pkg)
 
     # Export Final Meta Data File
-    PS.Export_List(rp.meta, meta_list)
-    PS.Write_To_Log('CreateRP', 'RP #' + rp.num + ' Was Successfully Created', log_file)
+    PS.Export_List(rp_meta, meta_list)
+    PS.Write_To_Log('CreateRP', 'RP #' + rp_num + ' Was Successfully Created', log_file)
     PS.End_Log('CreateRP', log_file)
-    PS.prSuccess('Restore Point #' + rp.num + ' Successfully Created!')
+    PS.prSuccess('Restore Point #' + rp_num + ' Successfully Created!')

@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
 # A utility for marking and restoring stable arch packages
 import argparse
+import re
 import os
 import create_rp as cp
-from create_rp import RestorePointMeta
 import rollback_rp as rb
 import pac_utils as pu
 import version_control as vc
@@ -68,7 +68,7 @@ if args.version:
     print('Pacback Version: ' + version)
 
 if args.info:
-    if RestorePointMeta.is_num_valid(args.info):
+    if re.findall(r'^([0-9]|0[1-9]|[1-9][0-9])$', args.info):
         num = str(args.info).zfill(2)
         pu.print_rp_info(num)
     else:
@@ -79,7 +79,7 @@ if args.list:
 
 if args.remove:
     vc.check_if_root()
-    if RestorePointMeta.is_num_valid(args.remove):
+    if re.findall(r'^([0-9]|0[1-9]|[1-9][0-9])$', args.remove):
         num = str(args.remove).zfill(2)
         pu.remove_rp(num, args.no_confirm)
     else:
@@ -104,13 +104,11 @@ elif args.rollback_pkgs:
 elif args.hook:
     vc.check_if_root()
     args.no_confirm = True
-    rp = RestorePointMeta.find_next_unused('01', args.full_rp)
-    cp.create_restore_point(version, rp, args.add_dir, args.no_confirm, args.notes)
+    cp.create_restore_point(version, '00', args.full_rp, args.add_dir, args.no_confirm, args.notes)
 
 elif args.upgrade:
     vc.check_if_root()
-    rp = RestorePointMeta('00', args.full_rp)
-    cp.create_restore_point(version, rp, args.add_dir, args.no_confirm, args.notes)
+    cp.create_restore_point(version, '00', args.full_rp, args.add_dir, args.no_confirm, args.notes)
     os.system('sudo pacman -Syu')
 
 elif args.snapback:
@@ -122,20 +120,19 @@ elif args.snapback:
 
 elif args.rollback:
     vc.check_if_root()
-    if RestorePointMeta.is_num_valid(args.create_rp):
+    if re.findall(r'^([1-9]|0[1-9]|[1-9][0-9])$', args.rollback):
         rb.rollback_to_rp(version, args.rollback)
-    elif RestorePointMeta.is_date_valid(args.create_rp):
+    elif re.findall(r'^(?:[0-9]{2})?[0-9]{2}/[0-3]?[0-9]/(?:[0-9]{2})?[0-9]{2}$', args.rollback):
         rb.rollback_to_date(args.rollback)
     else:
         prError('No Usable Argument! Rollback Arg Must be a Restore Point # or a Date.')
 
 elif args.create_rp:
     vc.check_if_root()
-    if RestorePointMeta.is_num_valid(args.create_rp):
-        rp = RestorePointMeta(args.create_rp, args.full_rp)
-        cp.create_restore_point(version, rp, args.add_dir, args.no_confirm, args.notes)
+    if re.findall(r'^([1-9]|0[1-9]|[1-9][0-9])$', args.create_rp):
+        cp.create_restore_point(version, args.create_rp, args.full_rp, args.add_dir, args.no_confirm, args.notes)
     else:
-        prError('Create RP Args Must Be INT! Refer to Documentation for Help.')
+        prError('Create RP Args Must Be INT or Date! Refer to Documentation for Help.')
 
 elif args.unlock_rollback:
     vc.check_if_root()
