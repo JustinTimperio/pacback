@@ -6,7 +6,7 @@
 4. [Developer Guide](https://github.com/JustinTimperio/pacback/blob/master/DEVELOPER_GUIDE.md)
  
 ## Abstract:
-Being at the head of Linux kernel and application development means access to the latest features but also often means dealing with the latest bugs. While I don't run into major bugs often, when they happen, they cripple my productivity. Reversing individual packages is generally a slow manual process and while some tools exist, none meet my needs. In particular, support for downgrading AUR packages is extremely lacking. To combat these issues I wrote pacback to automate various downgrade methods available for restoring Arch Linux to previous version states. 
+Being at the head of Linux kernel and application development means access to the latest features but also often means dealing with the latest bugs. While I don't run into major bugs often, when they happen, they cripple my productivity. Reversing individual packages is generally a slow manual process and while some tools exist, none meet my needs. In particular, support for downgrading AUR packages is extremely lacking. To combat these issues I wrote pacback to automate various downgrade methods for restoring Arch Linux to a previous version state. 
 
 ## Core Features:
 
@@ -55,7 +55,7 @@ Pacback offers several core commands that streamline the process of creating and
 *Example: `pacback -v`*
 
 ### Utilities
-* -cl, --clean | Clean old and orphaned pacakages along with old Restore Points.\
+* -cl, --clean | Clean old and orphaned pacakages along with old restore points.\
 *Example: `pacback -cl`*
 * -rm, --remove | Removes the selected restore point.\
 *Example: `pacback -rm 12 -nc`*
@@ -73,7 +73,7 @@ Pacback offers two AUR packages. (Special thanks to [Attila Greguss](https://git
 [pacback-git](https://aur.archlinux.org/packages/pacback-git): This package fetches the latest version from git. The master branch will be unstable periodically but is ideal for anyone looking to contribute to pacback's development or if you want access to the latest features and patches.
 
 ## User Guide
-While there are only a few CLI commands, they can be used in a wide variety of complex restoration tasks. The user guide has grown quite extensively in size and has been moved to its own page! [Check it out here!]()
+While there are only a few CLI commands, they can be used in a wide variety of complex restoration tasks. The user guide has grown quite extensively in size and has been moved to its own page! [Check it out here!](https://github.com/JustinTimperio/pacback/blob/master/USER_GUIDE.md)
 
 ## Developer Guide
-Interested in helping develop pacback? Have questions about how it works? The detailed developer guide explains all the core features, codebase, and design philosophy of pacback. [Check it out here!]()
+Interested in helping develop pacback? Have questions about how it works? The detailed developer guide explains all the core features, codebase, and design philosophy of pacback. [Check it out here!](https://github.com/JustinTimperio/pacback/blob/master/DEVELOPER_GUIDE.md)
