@@ -1,0 +1,27 @@
+## Pacback Config File
+## Version 2.0.0
+
+## Mandatory Settings
+
+# Number Of Seconds Before The Snapshot Lock Expires
+hook_cooldown = 300
+
+# Max Number Of Snapshots To Keep
+max_snapshots =  25
+
+# Let The User Schedule a Reboot if Needed.
+# If Flase Pacback Will Only Notify You
+reboot = True
+
+## Optional Settings
+
+# Number Of Minutes In Future To Schedule Reboot
+# Only Runs After The Kernel Has Changed
+reboot_offset = 5
+
+# Number of Old Cached Versions To Keep
+# When Running a Pacback Cache Clean
+keep_versions = 3
+
+# Number Of Days Before an RP is Flagged Old
+old_rp = 180

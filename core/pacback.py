@@ -1,145 +1,168 @@
 #! /usr/bin/env python3
-# A utility for marking and restoring stable arch packages
-import argparse
 import re
-import os
-import create_rp as cp
-import rollback_rp as rb
-import pac_utils as pu
-import version_control as vc
-from python_scripts import prError
+import signal
+import argparse
+from functools import partial
+
+# Local Modules
+import paf
+import user
+import utils
+import create
+import restore
+import session
 
 
-#<#><#><#><#><#><#>#<#>#<#
-#<># CLI Args
-#<#><#><#><#><#><#>#<#>#<#
+##################
+# CLI Arguments
+################
 
+parser = argparse.ArgumentParser(description="A package rollback utility for Arch Linux.")
 
-parser = argparse.ArgumentParser(description="A reliable rollback utility for marking and restoring custom save points in Arch Linux.")
-# Pacback -Syu
-parser.add_argument("-Syu", "--upgrade", action='store_true',
-                    help="Create a light restore point and run a full system upgrade. Use snapback to restore this version state.")
-parser.add_argument("-sb", "--snapback", action='store_true',
-                    help="Rollback packages to the version state stored before that last pacback upgrade.")
-parser.add_argument("--hook", action='store_true', help="Used Exclusivly by the Pacback Hook.")
-# Base RP Functions
-parser.add_argument("-rb", "--rollback", metavar=('RP# or YYYY/MM/DD'),
-                    help="Rollback to a previously generated restore point or to an archive date.")
-parser.add_argument("-pkg", "--rollback_pkgs", nargs='*', default=[], metavar=('PACKAGE_NAME'),
-                    help="Rollback a list of packages looking for old versions on the system.")
-parser.add_argument("-c", "--create_rp", metavar=('RP#'),
-                    help="Generate a pacback restore point. Takes a restore point # as an argument.")
+# Creation
+parser.add_argument("-c", "--create_rp", metavar=('1'),
+                    help="Generate a pacback restore point.")
+parser.add_argument("--hook", action='store_true',
+                    help="Used exxlusively by the pacback hook to create snapshots.")
+
+# Restoration
+parser.add_argument("-rp", "--restore_point", metavar=('1'),
+                    help="Rollback to a restore point.")
+parser.add_argument("-ss", "--snapshot", metavar=('1'),
+                    help="Rollback to a snapshot.")
+parser.add_argument("-pkg", "--downgrade_pkg", nargs='*', default=[], metavar=('pkg_name'),
+                    help="Rollback a list of packages.")
+parser.add_argument("-dt", "--date", metavar=('2020/06/23'),
+                    help="Rollback to a date in the Arch Archive.")
+
+# Optional Arguments
 parser.add_argument("-f", "--full_rp", action='store_true',
-                    help="Generate a pacback full restore point.")
-parser.add_argument("-d", "--add_dir", nargs='*', default=[], metavar=('/PATH'),
-                    help="Add any custom directories to your restore point during a `--create_rp AND --full_rp`.")
-parser.add_argument("-u", "--unlock_rollback", action='store_true',
-                    help="Release any date rollback locks on /etc/pacman.d/mirrorlist. No argument is needed.")
+                    help="Create full restore point.")
+parser.add_argument("-d", "--add_dir", nargs='*', default=[], metavar=('/path/here'),
+                    help="Add custom directories to your restore point when using `--full_rp`.")
+parser.add_argument("-nc", "--no_confirm", action='store_true',
+                    help="Skip asking user questions. Will typically answer yes to all.")
+parser.add_argument("-l", "--label", metavar=('Label Name'),
+                    help="Tag your restore point with a label.")
+
 # Utils
 parser.add_argument("-ih", "--install_hook", action='store_true',
-                    help="Install a Pacman hook that creates a snapback restore point during each Pacman Upgrade.")
+                    help="Install a pacman hook that creates snapshots.")
 parser.add_argument("-rh", "--remove_hook", action='store_true',
-                    help="Remove the Pacman hook that creates a snapback restore point during each Pacman Upgrade.")
-parser.add_argument("-nc", "--no_confirm", action='store_true',
-                    help="Skip asking user questions during RP creation. Will answer yes to all.")
-parser.add_argument("--clean", metavar=('# Versions to Keep'),
-                    help="Clean Old and Orphaned Pacakages. Provide the number of package you want keep.")
-parser.add_argument("-rm", "--remove", metavar=('RP#'),
-                    help="Remove Selected Restore Point.")
-parser.add_argument("-n", "--notes", metavar=('SOME NOTES HERE'),
-                    help="Add Custom Notes to Your Metadata File.")
+                    help="Remove the pacman hook that creates snapshots.")
+parser.add_argument("-cl", "--clean", action='store_true',
+                    help="Clean old packages, orphaned packages, and old restore points.")
+parser.add_argument("-rm", "--remove", metavar=('2'),
+                    help="Removes the selected restore point.")
+
+# Show Info
 parser.add_argument("-v", "--version", action='store_true',
-                    help="Display Pacback Version.")
-parser.add_argument("-i", "--info", metavar=('RP#'),
-                    help="Print information about a retore point.")
-parser.add_argument("-l", "--list", action='store_true',
-                    help="List all Created Restore Points")
+                    help="Display pacback version and cache info.")
+parser.add_argument("-i", "--info", metavar=('1'),
+                    help="Print information about a restore point.")
+parser.add_argument("-df", "--diff", nargs=2, metavar=('1 2'),
+                    help="Compare any two restore points or snapshots.")
+parser.add_argument("-ls", "--list", action='store_true',
+                    help="List information about all existing restore points and snapshots.")
+# Will Add This At Some Point
+#  parser.add_argument("-tl", "--timeline", action='store_true',
+                    #  help="Calculate a timeline of changes between snapshots.")
+
+################################
+# Safely Init the Environment
+##############################
+
 args = parser.parse_args()
+config = session.load_config()
+session.lock(config)
+session.setup(config)
+signal.signal(signal.SIGINT, partial(session.sig_catcher, config))
 
-
-#<#><#><#><#><#><#>#<#>#<#
-#<># Args Flow Control
-#<#><#><#><#><#><#>#<#>#<#
-
-version = '1.6.1'
-vc.pre_fligh_check()
+##########################
+# Display Info For User
+########################
 
 if args.version:
-    print('Pacback Version: ' + version)
+    print('Pacback Version: ' + config['version'])
+    print('PAF Version: ' + config['paf'])
+    cache = utils.cache_size(config)
+    print('Reported Cache Size: ' + cache[0])
+    print('Actual Cache Size: ' + cache[1])
 
 if args.info:
-    if re.findall(r'^([0-9]|0[1-9]|[1-9][0-9])$', args.info):
-        num = str(args.info).zfill(2)
-        pu.print_rp_info(num)
+    if re.findall(r'^(rp[0-9][0-9]$|rp[0-9]$|ss[0-9][0-9]$|ss[0-9])$', args.info):
+        user.print_info(config, args.info)
     else:
-        prError('Info Args Must Be in INT Format!')
+        paf.prError('Invalid Input: Argument Must Specify Type and Number! (IE: rp02 or ss4)')
 
 if args.list:
-    pu.print_all_rps()
+    user.list_all(config)
 
-if args.remove:
-    vc.check_if_root()
-    if re.findall(r'^([0-9]|0[1-9]|[1-9][0-9])$', args.remove):
-        num = str(args.remove).zfill(2)
-        pu.remove_rp(num, args.no_confirm)
+if args.diff:
+    if all(re.search(r'^(rp[0-9][0-9]$|rp[0-9]$|ss[0-9][0-9]$|ss[0-9])$', d) for d in args.diff):
+        user.diff_meta(config, args.diff[0], args.diff[1])
     else:
-        prError('Info Args Must Be in INT Format!')
+        paf.prError('Invalid Input: Argument Must Specify Type and Number! (IE: rp02 or ss4)')
 
-elif args.clean:
-    vc.check_if_root()
-    pu.clean_cache(args.clean)
+######################
+# Creation Commands
+####################
 
-elif args.install_hook:
-    vc.check_if_root()
-    pu.pacback_hook(install=True)
-
-elif args.remove_hook:
-    vc.check_if_root()
-    pu.pacback_hook(install=False)
-
-elif args.rollback_pkgs:
-    vc.check_if_root()
-    pu.rollback_packages(args.rollback_pkgs)
+if args.create_rp:
+    if re.match(r'^([0-9]|0[1-9]|[0-9][0-9])$', args.create_rp):
+        create.restore_point(config, args.create_rp, args.full_rp, args.add_dir, args.no_confirm, args.label)
+    else:
+        paf.prError('Invalid Input: Argument Must Be An Integer Between 0-99!')
 
 elif args.hook:
-    vc.check_if_root()
-    args.no_confirm = True
-    cp.create_restore_point(version, '00', args.full_rp, args.add_dir, args.no_confirm, args.notes)
+    create.snapshot(config, args.label)
 
-elif args.upgrade:
-    vc.check_if_root()
-    cp.create_restore_point(version, '00', args.full_rp, args.add_dir, args.no_confirm, args.notes)
-    os.system('sudo pacman -Syu')
+#########################
+# Restoration Commands
+#######################
 
-elif args.snapback:
-    vc.check_if_root()
-    if os.path.exists('/var/lib/pacback/restore-points/rp00.meta'):
-        rb.rollback_to_rp(version, '00')
+if args.downgrade_pkg:
+    if not all(re.search(r'^(s*[0-9])', pkg) for pkg in args.downgrade_pkg):
+        restore.packages(config, args.downgrade_pkg)
     else:
-        prError('No Snapback Found!')
+        paf.prError('Invalid Input: Package Names Should NOT Start With Digits!')
 
-elif args.rollback:
-    vc.check_if_root()
-    if re.findall(r'^([1-9]|0[1-9]|[1-9][0-9])$', args.rollback):
-        rb.rollback_to_rp(version, args.rollback)
-    elif re.findall(r'^(?:[0-9]{2})?[0-9]{2}/[0-3]?[0-9]/(?:[0-9]{2})?[0-9]{2}$', args.rollback):
-        rb.rollback_to_date(args.rollback)
+elif args.snapshot:
+    if re.match(r'^([0-9]|0[1-9]|[0-9][0-9])$', args.snapshot):
+        restore.snapshot(config, args.snapshot)
     else:
-        prError('No Usable Argument! Rollback Arg Must be a Restore Point # or a Date.')
+        paf.prError('Invalid Input: Argument Must Be An Integer Between 0-99!')
 
-elif args.create_rp:
-    vc.check_if_root()
-    if re.findall(r'^([1-9]|0[1-9]|[1-9][0-9])$', args.create_rp):
-        cp.create_restore_point(version, args.create_rp, args.full_rp, args.add_dir, args.no_confirm, args.notes)
+elif args.restore_point:
+    if re.match(r'^([0-9]|0[1-9]|[0-9][0-9])$', args.restore_point):
+        restore.restore_point(config, args.restore_point)
     else:
-        prError('Create RP Args Must Be INT or Date! Refer to Documentation for Help.')
+        paf.prError('Invalid Input: Argument Must Be An Integer Between 0-99!')
 
-elif args.unlock_rollback:
-    vc.check_if_root()
-    pu.unlock_rollback()
+elif args.date:
+    if re.match(r'([12]\d{3}/(0[1-9]|1[0-2])/(0[1-9]|[12]\d|3[01]))', args.date):
+        restore.archive_date(config, args.date)
+    else:
+        paf.prError('Invalid Input: Date Must Be in YYYY/MM/DD Format!')
 
-elif not args.info or not args.version or not args.list:
-    pass
+#####################
+# Pacback Utilities
+###################
 
-else:
-    prError('No Usable Argument Given!')
+if args.remove:
+    if re.findall(r'^([0-9]|0[1-9]|[0-9][0-9])$', args.remove):
+        user.remove_rp(config, args.remove, args.no_confirm)
+    else:
+        paf.prError('Invalid Input: Argument Must Be An Integer Between 0-99!')
+
+elif args.clean:
+    user.clean_cache(config, args.no_confirm)
+
+elif args.install_hook:
+    utils.pacman_hook(True, config)
+
+elif args.remove_hook:
+    utils.pacman_hook(False, config)
+
+# Safely Close the Environment
+session.unlock(config)

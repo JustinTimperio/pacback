@@ -1,0 +1,58 @@
+# Maintainer: Attila Greguss <floyd0122[at]gmail[dot]com>
+# Co-Maintainer/Author: Justin Timperio <justintimperio[at]gmail[dot]com>
+ 
+pkgname=pacback-git
+pkgver=_VERSION_
+pkgrel=1
+pkgdesc='Advanced Version Control for Arch Linux'
+arch=('x86_64')
+url='https://github.com/JustinTimperio/pacback'
+license=('MIT')
+provides=('pacback')
+conflicts=('pacback')
+depends=('python' 'python-rich' 'python-requests' 'arch-install-scripts')
+optdepends=('pigz: Multithreaded de/compression of custom user files')
+source=('git+https://github.com/JustinTimperio/pacback.git')
+sha256sums=('SKIP')
+ 
+pkgver() {
+  cd "${srcdir}/pacback"
+  # Get the version number.
+  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+  cd "${srcdir}/pacback"
+  git submodule init core/paf
+  git config submodule.paf.url "$srcdir/paf"
+  git submodule update
+}
+
+package() {
+  cd "${srcdir}/pacback"
+  install -dm 755 "${pkgdir}"/{usr/share/pacback,usr/bin/}
+  cp -dr --no-preserve='ownership' core "${pkgdir}"/usr/share/pacback
+  ln -sf /usr/share/pacback/core/pacback.py "${pkgdir}"/usr/bin/pacback
+}
+
+post_install(){
+  # Installs Snapshot Hook
+  pacback -ih
+}
+
+post_upgrade(){
+  # Should Only Be Run When Upgrading ALPHA --> BETA
+  /tmp/alpha_upgrade.sh
+  rm /tmp/alpha-upgrade.sh
+}
+
+pre_remove() {
+  # Removes Snapshot Hook
+  pacback -rh
+}
+
+post_remove() {
+  # Removes Cached User Data
+  rm -R /var/lib/pacback
+  rm -R /etc/pacback
+}

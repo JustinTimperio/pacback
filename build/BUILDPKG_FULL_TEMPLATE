@@ -1,0 +1,44 @@
+# Maintainer: Attila Greguss <floyd0122[at]gmail[dot]com>
+# Co-Maintainer/Author: Justin Timperio <justintimperio[at]gmail[dot]com>
+ 
+pkgname=pacback
+pkgver=_VERSION_
+pkgrel=1
+pkgdesc='Advanced Version Control for Arch Linux'
+arch=('x86_64')
+url='https://github.com/JustinTimperio/pacback'
+license=('MIT')
+provides=('pacback')
+conflicts=('pacback-git')
+depends=('python' 'python-rich' 'python-requests' 'arch-install-scripts')
+optdepends=('pigz: Multithreaded de/compression of custom user files')
+source=('https://github.com/JustinTimperio/pacback/releases/download/v_VERSION_/_PACKAGE_')
+sha512sums=('_PKG_CHECKSUM_')
+ 
+
+package() {
+  cd "${srcdir}/${pkgname}"
+  install -dm 755 "${pkgdir}"/{usr/share/pacback,usr/bin/}
+  cp -dr --no-preserve='ownership' core "${pkgdir}"/usr/share/pacback
+  ln -sf /usr/share/pacback/core/pacback.py "${pkgdir}"/usr/bin/pacback
+}
+
+
+post_install(){
+  # Installs Snapshot Hook
+  pacback -ih
+  "${srcdir}/${pkgname}"/alpha_upgrade.sh
+}
+
+
+pre_remove() {
+  # Removes Snapshot Hook
+  pacback -rh
+}
+
+
+post_remove() {
+  # Removes Cached User Data
+  rm -R /var/lib/pacback
+  rm -R /etc/pacback
+}
