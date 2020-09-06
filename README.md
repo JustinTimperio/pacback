@@ -1,10 +1,9 @@
-﻿
 # Pacback 
  **Index:**
 1. [CLI Commands](https://github.com/JustinTimperio/pacback#pacback-cli-commands-and-flags)
 2. [Install Instructions](https://github.com/JustinTimperio/pacback#install-instructions)
-3. [User Guide](https://github.com/JustinTimperio/pacback#pacback-usage-examples)
-4. [Developer Guide](https://github.com/JustinTimperio/pacback#pacbacks-design)
+3. [User Guide](https://github.com/JustinTimperio/pacback/blob/master/USER_GUIDE.md)
+4. [Developer Guide](https://github.com/JustinTimperio/pacback/blob/master/DEVELOPER_GUIDE.md)
  
 ## Abstract:
 Being at the head of Linux kernel and application development means access to the latest features but also often means dealing with the latest bugs. While I don't run into major bugs often, when they happen, they cripple my productivity. Reversing individual packages is generally a slow manual process and while some tools exist, none meet my needs. In particular, support for downgrading AUR packages is extremely lacking. To combat these issues I wrote pacback to automate various downgrade methods available for restoring Arch Linux to previous version states. 
