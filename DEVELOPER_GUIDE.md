@@ -107,33 +107,32 @@ libmicrohttpd 0.9.71-1
 ## Restore Points
 
 ### Light Restore Points
-By default, pacback creates a Light Restore Point which consists of only a .meta file. When you fall back on this restore point, pacback will search your file system looking for old versions specified in the .meta file. If you have not cleared your cache or are rolling back a recent upgrade, Light Restore Points provide extremely fast and effective rollbacks. 
+By default, pacback creates a Light restore point which consists of only a .meta file. When you fall back on this restore point, pacback will search your file system looking for old versions specified in the .meta file. If you have not cleared your cache or are rolling back a recent upgrade, Light restore points provide extremely fast and effective rollbacks. 
 
 **Advantages:**
- - Light RP's are Extremely Small (~25KB)
- - Generating a Light RP's is Fast (~50-100 milliseconds)
- - Low Overhead Means No Impact on Pacman Upgrade Times
+ - Light RP's are extremely small (~25KB)
+ - Generating a Light RP's is fast (~50-100 milliseconds)
+ - Low overhead means no impact on pacman upgrade times
 
 **Disadvantages:**
- - Light RP's Will Fail to Provide Value If Old Package Versions Are Removed Every Week (aka. paccahe -r)
+ - Light RP's will fail to provide value if old package versions are removed every week (aka. paccahe -r)
 
 ### Full Restore Points
 When the full flag is used, pacback searches through your file system looking for each package version installed. Pacback then creates a restore point folder which contains a hardlink to each compiled package ('package.pkg.tar.zst') installed on the system at the time of its creation, along with any additional files the user specifies.  
 
-Full Restore Points also generate a .meta file with additional information needed for the Full Restore Point. When you fallback on a Full Restore Point, pacback runs its normal package checks giving you the ability to rollback packages and remove any new packages added since its creation. Once this is co
-mplete, if you have any config files saved, pacback will checksum each file and compare it to your file system. Pacback will then let you selectively overwrite each subsection of file type: Changed, Added, and Removed.
+Full Restore Points also generate a .meta file with additional information needed for the Full restore point. When you fallback on a Full restore point, pacback runs its normal package checks giving you the ability to rollback packages and remove any new packages added since its creation. Once this is complete, if you have any config files saved, pacback will checksum each file and compare it to your file system. Pacback will then let you selectively overwrite each subsection of file type: Changed, Added, and Removed.
 
 **Advantages:**
- - Full RP's Are 100% Self Contained
- - Adding Custom Directories Allows for the Rollback of Config Files Associated with New Versions
- - Full RP's Ensure That Packages Are Not Prematurely Removed
- - Provides Light Restore Points Additional Resilience
+ - Full RP's are 100% self contained
+ - Adding custom directories allows for the rollback of config files
+ - Full RP's ensure that packages are not prematurely removed
+ - Provides Light restore points additional resilience
 
 **Disadvantages:**
  - Building full restore points takes slightly longer than light restore points depending on IO speed.
 
 ## Snapshots
-Snapshots are a new addition to pacback and act as an auto-incrementing fallback point. These snapshots are simply a single metadata file but exist separate from restore points. Pacback installs an alpm hook that is triggered each time pacman makes a change to the system. This includes all installs, removals and upgrades made to the system. As the pacback creates new snapshots, each previous snapshot is shifted backwards one slot until it reaches the max number defined by the user. 
+Snapshots are a new addition and act as an auto-incrementing fallback point. Snapshots are simply a single metadata file but exist separate from restore points. Pacback installs an alpm hook that is triggered each time pacman makes a change to the system. This includes all installs, removals and upgrades made to the system. As the pacback creates new snapshots, each previous snapshot is shifted forward one slot until it reaches the max number defined by the user. 
 
 ![Snapshot Architecture](https://i.imgur.com/smxMBK8.jpg)
 
