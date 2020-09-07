@@ -1,5 +1,14 @@
 # Pacback User Guide
 
+**Table of Contents:**
+- [Get Snapshot and Restore Point Info](https://github.com/JustinTimperio/pacback/blob/master/USER_GUIDE.md#getting-snapshot-and-restore-point-info)
+- [Using Rolling System Snapshots](https://github.com/JustinTimperio/pacback/blob/master/USER_GUIDE.md#rolling-system-snapshots)
+- [Rollback a List of Packages](https://github.com/JustinTimperio/pacback/blob/master/USER_GUIDE.md#rollback-a-list-of-packages)
+- [Rolling Back to an Archive Date](https://github.com/JustinTimperio/pacback/blob/master/USER_GUIDE.md#rolling-back-to-an-archive-date)
+- [Backup Version Sensitive Application Data](https://github.com/JustinTimperio/pacback/blob/master/USER_GUIDE.md#backup-version-sensitive-application-data)
+- [Automated Cache Cleaning](https://github.com/JustinTimperio/pacback/blob/master/USER_GUIDE.md#automated-cache-cleaning)
+- [Using the User Config File](https://github.com/JustinTimperio/pacback/blob/master/USER_GUIDE.md#using-the-user-config-file)
+
 ## Getting Snapshot and Restore Point Info
 As you accumulate snapshots(SS) and restore points(RP) it can be easy to lose track of the changes you’ve made to the system. Pacback makes it easy not only to get information about an individual RP or SS but also easily compare any of your RP’s or SS’s. 
 
@@ -48,3 +57,51 @@ In this example we pack up a custom directory containing over 10k files.
 2. `pacback -rp 1` 
 
 ![Pacback Saving App Data](https://i.imgur.com/Us8LqGj.gif)
+
+
+## Automated Cache Cleaning
+Pacback is first and foremost an automation tool and this extends to system maintenance. Cleaning and managing the cached packages on a system is something that many of us forget to do. Pacback has an inbuilt function that lets you easily clean old and orphaned packages. It will also check each one of your restore points looking for old ones that can be purged from the system. 
+
+![Pacback Cache Cleaning](https://i.imgur.com/UeL2H9B.gif)
+
+## Using The User Config File
+Pacback comes pre-configured out of the box, but for many users, there may be the need to customize pacback to meet the needs of their particular use case. Pacback creates a file `/etc/pacback/config` which users can modify to meet their needs. This includes modifying some of pabacks lower level features like snapshot locks, and also allows the user to outright disable some features.
+
+Below is the preconfigured config file:
+
+```
+## Pacback Config File
+## Version 2.0.0
+
+## Mandatory Settings
+
+# Number Of Seconds Before The Snapshot Lock Expires
+# MUST be an INT
+hook_cooldown = 300
+
+# Max Number Of Snapshots To Keep
+# MUST be an INT
+max_snapshots =  25
+
+# Let The User Schedule a Reboot if Needed.
+# If False Pacback Will Only Notify You
+# MUST be True or False
+reboot = True
+
+## Optional Settings
+
+# Number Of Minutes In Future To Schedule Reboot
+# Only Runs After The Kernel Has Changed
+# MUST be an INT
+reboot_offset = 5
+
+# Number of Old Cached Versions To Keep
+# When Running a Pacback Cache Clean
+# MUST be an INT
+keep_versions = 3
+
+# Number Of Days Before an RP is Flagged Old
+# MUST be an INT
+old_rp = 180
+
+```
