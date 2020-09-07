@@ -13,7 +13,6 @@ from rich.progress import track
 # Local Modules
 import paf
 import utils
-import session
 
 
 #################################################

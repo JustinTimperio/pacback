@@ -4,24 +4,30 @@
 ## Mandatory Settings
 
 # Number Of Seconds Before The Snapshot Lock Expires
+# MUST be an INT
 hook_cooldown = 300
 
 # Max Number Of Snapshots To Keep
+# MUST be an INT
 max_snapshots =  25
 
 # Let The User Schedule a Reboot if Needed.
-# If Flase Pacback Will Only Notify You
+# If False Pacback Will Only Notify You
+# MUST be True or False
 reboot = True
 
 ## Optional Settings
 
 # Number Of Minutes In Future To Schedule Reboot
 # Only Runs After The Kernel Has Changed
+# MUST be an INT
 reboot_offset = 5
 
 # Number of Old Cached Versions To Keep
 # When Running a Pacback Cache Clean
+# MUST be an INT
 keep_versions = 3
 
 # Number Of Days Before an RP is Flagged Old
+# MUST be an INT
 old_rp = 180

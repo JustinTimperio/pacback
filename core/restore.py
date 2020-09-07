@@ -116,9 +116,9 @@ def snapshot(config, id_num):
     id_counter = 0
     for n in range(int(info['id']), (config['max_ss'] + 1)):
         meta_path_old = config['ss_paths'] + '/ss' + str(n).zfill(2) + '.meta'
-        meta_path_new = config['ss_paths'] + '/ss' + str(id_counter) + '.meta'
+        meta_path_new = config['ss_paths'] + '/ss' + str(id_counter).zfill(2) + '.meta'
         hash_path_old = config['ss_paths'] + '/.ss' + str(n).zfill(2) + '.md5'
-        hash_path_new = config['ss_paths'] + '/.ss' + str(id_counter) + '.md5'
+        hash_path_new = config['ss_paths'] + '/.ss' + str(id_counter).zfill(2) + '.md5'
         meta_found = os.path.exists(meta_path_old)
         csum_found = os.path.exists(hash_path_old)
 
@@ -150,7 +150,7 @@ def snapshot(config, id_num):
 
 def restore_point(config, id_num):
     '''
-    This preps the system for a restoration then hands off to restore.main() 
+    This preps the system for a restoration then hands off to restore.main()
     '''
     id_num = str(id_num).zfill(2)
     fname = 'restore.restore_point(' + id_num + ')'

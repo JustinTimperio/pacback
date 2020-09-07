@@ -13,12 +13,15 @@ A clear and concise description of what the bug is.
 **Output of Command**
 - Output sent to the user in terminal
 - Log output in /var/log/pacback.log
+- Config file in /etc/pacback/config
 
 **Machine (please fill in the following information):**
  - Kernel Version: (`uname -r`)
  - Python Version: (`python3 --version`)
- - Install Type: (pacback vs pacback-git vs git repo)
+ - Python Rich Version (`pacman -Q | grep python-rich`)
+ - Python Requests Version (`pacman -Q | grep python-requests`)
  - Pacback Version: (`sudo pacback -v`)
+ - Install Type: (pacback vs pacback-git)
 
 
 **To Reproduce**

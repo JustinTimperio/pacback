@@ -30,7 +30,7 @@ parser.add_argument("-rp", "--restore_point", metavar=('1'),
                     help="Rollback to a restore point.")
 parser.add_argument("-ss", "--snapshot", metavar=('1'),
                     help="Rollback to a snapshot.")
-parser.add_argument("-pkg", "--downgrade_pkg", nargs='*', default=[], metavar=('pkg_name'),
+parser.add_argument("-pkg", "--package", nargs='*', default=[], metavar=('pkg_name'),
                     help="Rollback a list of packages.")
 parser.add_argument("-dt", "--date", metavar=('2020/06/23'),
                     help="Rollback to a date in the Arch Archive.")

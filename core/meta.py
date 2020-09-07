@@ -13,7 +13,7 @@ def find_in(meta_data, key):
     Fetches the value for a 'key: value' entry in the meta data.
     '''
     for m in meta_data:
-        if m.split(':')[0] == key:
+        if m.split(':')[0].lower() == key.lower():
             value = ':'.join(m.split(':')[1:]).strip()
             return value
     return 'None'
