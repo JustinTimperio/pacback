@@ -34,3 +34,4 @@ sed -i "s/_VERSION_/$pkg_version/" $buildpkg_path
 # Make SRCINFO
 cd $base_path
 makepkg --printsrcinfo > $srcinfo_path
+makepkg

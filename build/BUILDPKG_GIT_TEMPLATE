@@ -24,6 +24,7 @@ pkgver() {
   cd "${srcdir}/pacback"
   # Get the version number.
   printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
 
 prepare() {
   cd "${srcdir}/pacback"
@@ -36,9 +37,9 @@ package() {
   cd "${srcdir}"
   install -dm 755 "${pkgdir}"{/usr/{share/{pacback,pacback/paf,licences/pacback},bin/},/etc}
   install -dm 1777 "${pkgdir}"/tmp
-  cp -dr --no-preserve='ownership' core "${pkgdir}"/usr/share/pacback
-  cp -dr --no-preserve='ownership' alpha-upgrade.sh "${pkgdir}"/tmp
-  cp -dr --no-preserve='ownership' LICENSE "${pkgdir}"/usr/share/licences/pacback
-  cp -dr --no-preserve='ownership' config "${pkgdir}"/etc/pacback.conf
+  cp -dr --no-preserve='ownership' pacback/core "${pkgdir}"/usr/share/pacback
+  cp -dr --no-preserve='ownership' pacback/LICENSE "${pkgdir}"/usr/share/licences/pacback
+  cp -dr --no-preserve='ownership' pacback/build/config "${pkgdir}"/etc/pacback.conf
+  cp -dr --no-preserve='ownership' pacback/build/alpha-upgrade.sh "${pkgdir}"/tmp
   ln -sf /usr/share/pacback/core/pacback.py "${pkgdir}"/usr/bin/pacback
 }
