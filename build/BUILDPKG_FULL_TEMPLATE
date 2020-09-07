@@ -3,42 +3,30 @@
  
 pkgname=pacback
 pkgver=_VERSION_
-pkgrel=1
+pkgrel=0
 pkgdesc='Advanced Version Control for Arch Linux'
 arch=('x86_64')
 url='https://github.com/JustinTimperio/pacback'
 license=('MIT')
 provides=('pacback')
 conflicts=('pacback-git')
+# avoid overwriting modified config files
+install='pacback.install'
+backup=('etc/pacback.conf')
 depends=('python' 'python-rich' 'python-requests' 'arch-install-scripts')
+makedepends=('zstd')
 optdepends=('pigz: Multithreaded de/compression of custom user files')
 source=('https://github.com/JustinTimperio/pacback/releases/download/v_VERSION_/_PACKAGE_')
 sha512sums=('_PKG_CHECKSUM_')
  
 
 package() {
-  cd "${srcdir}/${pkgname}"
-  install -dm 755 "${pkgdir}"/{usr/share/pacback,usr/bin/}
+  cd "${srcdir}"
+  install -dm 755 "${pkgdir}"{/usr/{share/{pacback,pacback/paf,licences/pacback},bin/},/etc}
+  install -dm 1777 "${pkgdir}"/tmp
   cp -dr --no-preserve='ownership' core "${pkgdir}"/usr/share/pacback
+  cp -dr --no-preserve='ownership' alpha-upgrade.sh "${pkgdir}"/tmp
+  cp -dr --no-preserve='ownership' LICENSE "${pkgdir}"/usr/share/licences/pacback
+  cp -dr --no-preserve='ownership' config "${pkgdir}"/etc/pacback.conf
   ln -sf /usr/share/pacback/core/pacback.py "${pkgdir}"/usr/bin/pacback
-}
-
-
-post_install(){
-  # Installs Snapshot Hook
-  pacback -ih
-  "${srcdir}/${pkgname}"/alpha_upgrade.sh
-}
-
-
-pre_remove() {
-  # Removes Snapshot Hook
-  pacback -rh
-}
-
-
-post_remove() {
-  # Removes Cached User Data
-  rm -R /var/lib/pacback
-  rm -R /etc/pacback
 }

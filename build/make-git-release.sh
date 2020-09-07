@@ -8,6 +8,7 @@ pkg_version=$(printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --
 base_path='/tmp/pacback-git'
 buildpkg_path=$base_path/PKGBUILD
 srcinfo_path=$base_path/.SRCINFO
+pacback_install_path=$base_path/pacback.install
 
 
 ####################
@@ -27,6 +28,7 @@ cd $dir_path
 
 # Make BUILDPKG
 cp $dir_path/BUILDPKG_GIT_TEMPLATE $buildpkg_path
+cp $dir_path/INSTALL_TEMPLATE $pacback_install_path
 sed -i "s/_VERSION_/$pkg_version/" $buildpkg_path
 
 # Make SRCINFO

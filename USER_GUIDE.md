@@ -65,7 +65,7 @@ Pacback is first and foremost an automation tool and this extends to system main
 ![Pacback Cache Cleaning](https://i.imgur.com/UeL2H9B.gif)
 
 ## Using The User Config File
-Pacback comes pre-configured out of the box, but for many users, there may be the need to customize pacback to meet the needs of their particular use case. Pacback creates a file `/etc/pacback/config` which users can modify to meet their needs. This includes modifying some of pabacks lower level features like snapshot locks, and also allows the user to outright disable some features.
+Pacback comes pre-configured out of the box, but for many users, there may be the need to customize pacback to meet the needs of their particular use case. Pacback creates a file `/etc/pacback.conf` which users can modify to meet their needs. This includes modifying some of pabacks lower level features like snapshot locks, and also allows the user to outright disable some features.
 
 Below is the preconfigured config file:
 

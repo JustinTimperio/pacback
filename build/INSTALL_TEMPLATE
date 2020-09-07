@@ -1,0 +1,32 @@
+# Maintainer: Attila Greguss <floyd0122[at]gmail[dot]com>
+# Co-Maintainer/Author: Justin Timperio <justintimperio[at]gmail[dot]com>
+
+## arg 1:  the new package version
+post_install() {
+      # Installs Snapshot Hook
+      pacback -ih
+}
+
+## arg 1:  the new package version
+## arg 2:  the old package version
+post_upgrade() {
+    newVer=$1
+      oldVer=$2
+
+      if [ ${newVer:0:1} -eq 2 ] && [ ${oldVer:0:1} -eq 1 ];
+      then
+          /tmp/alpha-upgrade.sh
+      fi;
+    rm -f /tmp/alpha-upgrade.sh
+}
+
+pre_remove() {
+    # Removes Snapshot Hook
+    pacback -rh
+}
+
+## arg 1:  the old package version
+post_remove() {
+    # Removes Cached User Data
+    rm -Rf /var/lib/pacback
+}

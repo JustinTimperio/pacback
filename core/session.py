@@ -122,7 +122,7 @@ def hlock_check(config):
 
 def load_config():
     '''
-    Loads in user config options from /etc/pacback/config and returns results
+    Loads in user config options from /etc/pacback.conf and returns results
     '''
     mandatory = ['hook_cooldown', 'max_ss', 'reboot']
     optional = ['old_rp', 'keep_versions', 'reboot_offset', 'log_length', 'basepath', 'rp_paths', 'ss_paths']
@@ -144,8 +144,8 @@ def load_config():
         'reboot_offset': 5
         }
 
-    if os.path.exists('/etc/pacback/config'):
-        user_config = paf.read_config('/etc/pacback/config', mandatory, optional)
+    if os.path.exists('/etc/pacback.conf'):
+        user_config = paf.read_config('/etc/pacback.conf', mandatory, optional)
         default.update(user_config)
 
     return default

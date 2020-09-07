@@ -121,9 +121,9 @@ elif args.hook:
 # Restoration Commands
 #######################
 
-if args.downgrade_pkg:
-    if not all(re.search(r'^(s*[0-9])', pkg) for pkg in args.downgrade_pkg):
-        restore.packages(config, args.downgrade_pkg)
+if args.package:
+    if not all(re.search(r'^(s*[0-9])', pkg) for pkg in args.package):
+        restore.packages(config, args.package)
     else:
         paf.prError('Invalid Input: Package Names Should NOT Start With Digits!')
 
