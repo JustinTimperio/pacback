@@ -2,7 +2,6 @@
 
 ## Updates Meta Data Files and Directory Paths for Upgrade From Alpha
 ## The Script is Safe to Run Multiple Times
-echo 'Starting Upgrade Of Any Alpha Restore Point Data...'
 
 #########################
 # Patch Metadata Files
@@ -45,5 +44,3 @@ find $base_path -type f -name '*.meta' -exec sed -i 's/^Dirs /Dir /' {} +
 
 # Change Package Cache Folder Name
 find $base_path/restore-points -type d -name 'pac_cache' -exec rename 'pac_cache' 'pkg-cache' {} +
-
-echo 'Finished Upgrade!'
