@@ -29,7 +29,7 @@ def main(config, parms, pkg_results):
 
         # Branch if Packages are Missing
         if len(found_pkgs) != len(pkg_results['search']):
-            missing_pkg = {pkg_results['search'] - utils.trim_pkg_list(found_pkgs)}
+            missing_pkg = set(pkg_results['search'] - utils.trim_pkg_list(found_pkgs))
             paf.write_to_log(fname, str(len(found_pkgs)) + ' Out of ' + str(len(pkg_results['search'])) + ' Packages Found', config['log'])
 
             paf.prWarning('Couldn\'t Find The Following Package Versions:')
@@ -158,8 +158,8 @@ def restore_point(config, id_num):
 
     info = {
             'id': id_num,
-            'type': 'ss',
-            'TYPE': 'Snapshot',
+            'type': 'rp',
+            'TYPE': 'Restore Point',
             'meta': config['rp_paths'] + '/rp' + id_num + '.meta',
             'meta_md5': config['rp_paths'] + '/.rp' + id_num + '.md5',
             'path': config['rp_paths'] + '/rp' + id_num,
