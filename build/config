@@ -9,7 +9,7 @@ hook_cooldown = 300
 
 # Max Number Of Snapshots To Keep
 # MUST be an INT
-max_snapshots =  25
+max_ss =  25
 
 # Let The User Schedule a Reboot if Needed.
 # If False Pacback Will Only Notify You
