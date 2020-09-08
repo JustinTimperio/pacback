@@ -271,5 +271,6 @@ def archive_date(config, date):
     else:
         os.system('mv ' + mirror + '.pacback ' + mirror)
         paf.write_to_log(fname, 'Backup Mirrorlist Was Restored Successfully', config['log'])
+        print('Refreshing Pacman Database...')
         os.system('pacman -Syy > /dev/null')
         paf.write_to_log(fname, 'Updated Pacman Database After Restoring Mirrorlist', config['log'])
