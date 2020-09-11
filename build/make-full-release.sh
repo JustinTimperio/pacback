@@ -7,7 +7,7 @@
 script_path=$(realpath $0)
 build_path=$(dirname $script_path)
 repo_path=$(dirname $build_path)
-pkg_version=$(grep -Poi '\d+.\d+.\d+' $repo_path/core/session.py)
+pkg_version=$(grep -Poi '\d+\.\d+\.\d+' $repo_path/core/session.py)
 tar_name=$(echo pacback-$pkg_version-SOURCE.tar)
 zst_name=$(echo pacback-$pkg_version-SOURCE.tar.zst)
 base_path='/tmp/pacback'
