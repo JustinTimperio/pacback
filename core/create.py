@@ -55,8 +55,8 @@ def main(config, info):
         paf.mk_dir(info['path'], sudo=False)
         paf.mk_dir(info['pkgcache'], sudo=False)
         # This Is Much Faster Than A For Loop
-        cmds = {'ln ' + pkg + ' ' + info['pkgcache'] + '/' + paf.basename(pkg) for pkg in found_pkgs}
-        cmds = {paf.escape_bash_input(x) for x in cmds}
+        cmds = {'ln ' + paf.escape_bash_input(pkg) + ' ' + info['pkgcache']
+                + '/' + paf.basename(pkg) for pkg in found_pkgs}
         os.system(' & '.join(cmds))
         paf.write_to_log(fname, 'HardLinked ' + str(len(found_pkgs)) + ' Packages', config['log'])
 

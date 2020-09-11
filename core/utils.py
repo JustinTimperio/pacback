@@ -180,7 +180,7 @@ def scan_caches(config):
 
         if len(inode_filter) != len(unique_pkgs):
             # THIS SHOULD BASICALLY NEVER RUN
-            paf.write_to_log(fname, 'File System None-Inoded Duplicated Files!', config['log'])
+            paf.write_to_log(fname, 'File System Contains None-Hardlinked Duplicate Packages!', config['log'])
             paf.write_to_log(fname, 'Attempting to Filter Packages With Regex...', config['log'])
             thread_cap = 4
 
@@ -326,9 +326,19 @@ def cache_size(config):
 
     caches = find_cache_paths(config)
     pacman_cache = find_pkgs_in_dir(caches[0])
-    user_cache = find_pkgs_in_dir(caches[1:])
+    user_cache = find_pkgs_in_dir(caches[1:-1])
     pacback_cache = find_pkgs_in_dir(caches[-1:])
-    pacback_filter = pacback_cache.difference({*pacman_cache, *user_cache})
+
+    inodes = set()
+    pacback_filter = set()
+    for x in {*pacman_cache, *user_cache, *pacback_cache}:
+        i = os.lstat(x)[stat.ST_INO]
+        if i in inodes:
+            pass
+        else:
+            pacback_filter.add(x)
+            inodes.add(i)
+
     all_cache = {*pacman_cache, *user_cache, *pacback_cache}
     pkg_total = len(pacman_cache) + len(user_cache) + len(pacback_filter)
 
