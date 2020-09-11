@@ -19,6 +19,73 @@ def find_in(meta_data, key):
     return 'None'
 
 
+######################################
+# Read A Meta Data File Into A Dict
+####################################
+
+def read(config, meta_path):
+    '''
+    Reads the raw human readable meta file into a python dictionary.
+    Uses meta.find_in() and paf.read_between() to the find values.
+    '''
+    meta_raw = paf.read_file(meta_path)
+
+    meta_dict = {
+            'version': find_in(meta_raw, 'Version'),
+            'type': find_in(meta_raw, 'Type'),
+            'stype': find_in(meta_raw, 'SubType'),
+            'date': find_in(meta_raw, 'Date Created'),
+            'time': find_in(meta_raw, 'Time Created'),
+            'pkgs_installed': find_in(meta_raw, 'Packages Installed'),
+            'pkg_list': set(paf.read_between(' Pacman List ', '<Endless>', meta_raw, re_flag=True)),
+            'label': find_in(meta_raw, 'Label'),
+
+            # Full Values
+            'pkgs_cached': find_in(meta_raw, 'Packages Cached'),
+            'cache_size': find_in(meta_raw, 'Package Cache Size'),
+            'dir_list': set(paf.read_between(' Dir List ', ' Pacman List ', meta_raw, re_flag=True)[:-1]),
+            'file_count': find_in(meta_raw, 'Dir File Count'),
+            'file_raw_size': find_in(meta_raw, 'Dir Raw Size'),
+            'tar_size': find_in(meta_raw, 'Tar Compressed Size'),
+            'tar_csum': find_in(meta_raw, 'Tar Checksum')}
+
+    return meta_dict
+
+
+##############################
+# Compare Two Package Lists
+############################
+
+def compare(config, old_pkgs, new_pkgs):
+    '''
+    Compares two list of packages and returns a dictionary containing
+    changed, added, and removed packages. Also returns a formated list
+    for searching with utils.search_cache().
+    '''
+
+    # Strips the Version
+    old_pkg_strp = {pkg.split(' ')[0] for pkg in old_pkgs}
+    current_pkg_strp = {pkg.split(' ')[0] for pkg in new_pkgs}
+    added_pkgs = set(current_pkg_strp - old_pkg_strp)
+    removed_pkgs = set(old_pkg_strp - current_pkg_strp)
+
+    # Clears Removed Packages From changed_pkgs
+    c_plus_r = set(old_pkgs - new_pkgs)
+    search = ('|'.join(list(re.escape(pkg) for pkg in removed_pkgs)))
+    changed_pkgs = set()
+    for pkg in c_plus_r:
+        if not re.findall(search, pkg.lower()):
+            changed_pkgs.add(pkg)
+
+    results = {
+            'search': paf.replace_spaces(c_plus_r, '-'),
+            'c_pkgs': changed_pkgs,
+            'a_pkgs': added_pkgs,
+            'r_pkgs': removed_pkgs}
+
+    return results
+
+
 #########################################
 # Checksum And Validate Meta Integrity
 #######################################
@@ -61,79 +128,6 @@ def validate(config, info):
         else:
             paf.write_to_log(fname, 'User Choose To Continue Even Though The Checksum is Missing', config['log'])
             return
-
-
-######################################
-# Read A Meta Data File Into A Dict
-####################################
-
-def read(config, meta_path):
-    '''
-    Reads the raw human readable meta file into a python dictionary.
-    Uses meta.find_in() and paf.read_between() to the find values.
-    '''
-    fname = 'meta.read(' + paf.basename(meta_path) + ')'
-    meta_raw = paf.read_file(meta_path)
-    paf.write_to_log(fname, 'Started Reading Raw Meta Data File...', config['log'])
-
-    meta_dict = {
-            'version': find_in(meta_raw, 'Version'),
-            'type': find_in(meta_raw, 'Type'),
-            'stype': find_in(meta_raw, 'SubType'),
-            'date': find_in(meta_raw, 'Date Created'),
-            'time': find_in(meta_raw, 'Time Created'),
-            'pkgs_installed': find_in(meta_raw, 'Packages Installed'),
-            'pkg_list': set(paf.read_between(' Pacman List ', '<Endless>', meta_raw, re_flag=True)),
-            'label': find_in(meta_raw, 'Label'),
-
-            # Full Values
-            'pkgs_cached': find_in(meta_raw, 'Packages Cached'),
-            'cache_size': find_in(meta_raw, 'Package Cache Size'),
-            'dir_list': set(paf.read_between(' Dir List ', ' Pacman List ', meta_raw, re_flag=True)[:-1]),
-            'file_count': find_in(meta_raw, 'Dir File Count'),
-            'file_raw_size': find_in(meta_raw, 'Dir Raw Size'),
-            'tar_size': find_in(meta_raw, 'Tar Compressed Size'),
-            'tar_csum': find_in(meta_raw, 'Tar Checksum')}
-
-    paf.write_to_log(fname, 'Created Meta Dictionary', config['log'])
-    return meta_dict
-
-
-##############################
-# Compare Two Package Lists
-############################
-
-def compare(config, old_pkgs, new_pkgs):
-    '''
-    Compares two list of packages and returns a dictionary containing
-    changed, added, and removed packages. Also returns a formated list
-    for searching with utils.search_cache().
-    '''
-    fname = 'meta.compare()'
-    paf.write_to_log(fname, 'Started Comparing Meta Against Current System...', config['log'])
-
-    # Strips the Version
-    old_pkg_strp = {pkg.split(' ')[0] for pkg in old_pkgs}
-    current_pkg_strp = {pkg.split(' ')[0] for pkg in new_pkgs}
-    added_pkgs = set(current_pkg_strp - old_pkg_strp)
-    removed_pkgs = set(old_pkg_strp - current_pkg_strp)
-
-    # Clears Removed Packages From changed_pkgs
-    c_plus_r = set(old_pkgs - new_pkgs)
-    search = ('|'.join(list(re.escape(pkg) for pkg in removed_pkgs)))
-    changed_pkgs = set()
-    for pkg in c_plus_r:
-        if not re.findall(search, pkg.lower()):
-            changed_pkgs.add(pkg)
-
-    results = {
-            'search': paf.replace_spaces(c_plus_r, '-'),
-            'c_pkgs': changed_pkgs,
-            'a_pkgs': added_pkgs,
-            'r_pkgs': removed_pkgs}
-
-    paf.write_to_log(fname, 'Finished Comparing, Returning Results', config['log'])
-    return results
 
 
 #############################

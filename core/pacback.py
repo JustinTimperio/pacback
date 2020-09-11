@@ -64,19 +64,11 @@ parser.add_argument("-df", "--diff", nargs=2, metavar=('1 2'),
                     help="Compare any two restore points or snapshots.")
 parser.add_argument("-ls", "--list", action='store_true',
                     help="List information about all existing restore points and snapshots.")
-# Will Add This At Some Point
-#  parser.add_argument("-tl", "--timeline", action='store_true',
-                    #  help="Calculate a timeline of changes between snapshots.")
-
-################################
-# Safely Init the Environment
-##############################
+parser.add_argument("-cache", "--cache_size", action='store_true',
+                    help="Calculate a timeline of changes between snapshots.")
 
 args = parser.parse_args()
 config = session.load_config()
-session.lock(config)
-session.setup(config)
-signal.signal(signal.SIGINT, partial(session.sig_catcher, config))
 
 ##########################
 # Display Info For User
@@ -85,9 +77,6 @@ signal.signal(signal.SIGINT, partial(session.sig_catcher, config))
 if args.version:
     print('Pacback Version: ' + config['version'])
     print('PAF Version: ' + config['paf'])
-    cache = utils.cache_size(config)
-    print('Reported Cache Size: ' + cache[0])
-    print('Actual Cache Size: ' + cache[1])
 
 if args.info:
     if re.findall(r'^(rp[0-9][0-9]$|rp[0-9]$|ss[0-9][0-9]$|ss[0-9])$', args.info):
@@ -104,65 +93,81 @@ if args.diff:
     else:
         paf.prError('Invalid Input: Argument Must Specify Type and Number! (IE: rp02 or ss4)')
 
-######################
-# Creation Commands
-####################
+if args.create_rp or args.hook or args.package or args.snapshot or args.restore_point or args.date\
+        or args.remove or args.clean or args.install_hook or args.remove_hook or args.cache_size:
 
-if args.create_rp:
-    if re.match(r'^([0-9]|0[1-9]|[0-9][0-9])$', args.create_rp):
-        create.restore_point(config, args.create_rp, args.full_rp, args.add_dir, args.no_confirm, args.label)
-    else:
-        paf.prError('Invalid Input: Argument Must Be An Integer Between 0-99!')
+    # Safely Init the Environment
+    session.lock(config)
+    session.setup(config)
+    signal.signal(signal.SIGINT, partial(session.sig_catcher, config))
 
-elif args.hook:
-    create.snapshot(config, args.label)
+    ######################
+    # Creation Commands
+    ####################
 
-#########################
-# Restoration Commands
-#######################
+    if args.create_rp:
+        if re.match(r'^([0-9]|0[1-9]|[0-9][0-9])$', args.create_rp):
+            create.restore_point(config, args.create_rp, args.full_rp, args.add_dir, args.no_confirm, args.label)
+        else:
+            paf.prError('Invalid Input: Argument Must Be An Integer Between 0-99!')
 
-if args.package:
-    if not all(re.search(r'^(s*[0-9])', pkg) for pkg in args.package):
-        restore.packages(config, args.package)
-    else:
-        paf.prError('Invalid Input: Package Names Should NOT Start With Digits!')
+    elif args.hook:
+        create.snapshot(config, args.label)
 
-elif args.snapshot:
-    if re.match(r'^([0-9]|0[1-9]|[0-9][0-9])$', args.snapshot):
-        restore.snapshot(config, args.snapshot)
-    else:
-        paf.prError('Invalid Input: Argument Must Be An Integer Between 0-99!')
+    #########################
+    # Restoration Commands
+    #######################
 
-elif args.restore_point:
-    if re.match(r'^([0-9]|0[1-9]|[0-9][0-9])$', args.restore_point):
-        restore.restore_point(config, args.restore_point)
-    else:
-        paf.prError('Invalid Input: Argument Must Be An Integer Between 0-99!')
+    if args.package:
+        if not all(re.search(r'^(s*[0-9])', pkg) for pkg in args.package):
+            restore.packages(config, args.package)
+        else:
+            paf.prError('Invalid Input: Package Names Should NOT Start With Digits!')
 
-elif args.date:
-    if re.match(r'([12]\d{3}/(0[1-9]|1[0-2])/(0[1-9]|[12]\d|3[01]))', args.date):
-        restore.archive_date(config, args.date)
-    else:
-        paf.prError('Invalid Input: Date Must Be in YYYY/MM/DD Format!')
+    elif args.snapshot:
+        if re.match(r'^([0-9]|0[1-9]|[0-9][0-9])$', args.snapshot):
+            restore.snapshot(config, args.snapshot)
+        else:
+            paf.prError('Invalid Input: Argument Must Be An Integer Between 0-99!')
 
-#####################
-# Pacback Utilities
-###################
+    elif args.restore_point:
+        if re.match(r'^([0-9]|0[1-9]|[0-9][0-9])$', args.restore_point):
+            restore.restore_point(config, args.restore_point)
+        else:
+            paf.prError('Invalid Input: Argument Must Be An Integer Between 0-99!')
 
-if args.remove:
-    if re.findall(r'^([0-9]|0[1-9]|[0-9][0-9])$', args.remove):
-        user.remove_rp(config, args.remove, args.no_confirm)
-    else:
-        paf.prError('Invalid Input: Argument Must Be An Integer Between 0-99!')
+    elif args.date:
+        if re.match(r'([12]\d{3}/(0[1-9]|1[0-2])/(0[1-9]|[12]\d|3[01]))', args.date):
+            restore.archive_date(config, args.date)
+        else:
+            paf.prError('Invalid Input: Date Must Be in YYYY/MM/DD Format!')
 
-elif args.clean:
-    user.clean_cache(config, args.no_confirm)
+    #####################
+    # Pacback Utilities
+    ###################
 
-elif args.install_hook:
-    utils.pacman_hook(True, config)
+    if args.cache_size:
+        cache = utils.cache_size(config)
+        print('Unique Packages: ' + cache[0])
+        print('Pacman Cache Size: ' + cache[1])
+        print('User(s) Cache Size: ' + cache[2])
+        print('Pacback Cache Size: ' + cache[3])
+        print('Reported Total Cache Size: ' + cache[4])
 
-elif args.remove_hook:
-    utils.pacman_hook(False, config)
+    if args.remove:
+        if re.findall(r'^([0-9]|0[1-9]|[0-9][0-9])$', args.remove):
+            user.remove_rp(config, args.remove, args.no_confirm)
+        else:
+            paf.prError('Invalid Input: Argument Must Be An Integer Between 0-99!')
 
-# Safely Close the Environment
-session.unlock(config)
+    elif args.clean:
+        user.clean_cache(config, args.no_confirm)
+
+    elif args.install_hook:
+        utils.pacman_hook(True, config)
+
+    elif args.remove_hook:
+        utils.pacman_hook(False, config)
+
+    # Safely Close the Environment
+    session.unlock(config)

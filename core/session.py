@@ -128,7 +128,7 @@ def load_config():
     optional = ['old_rp', 'keep_versions', 'reboot_offset', 'log_length', 'basepath', 'rp_paths', 'ss_paths']
     default = {
         'version': '2.0.0',
-        'paf': '256fc62',
+        'paf': '4f25050',
         'log': '/var/log/pacback.log',
         'slock': '/tmp/pacback_session.lck',
         'hlock': '/tmp/pacback_hook.lck',

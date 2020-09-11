@@ -3,6 +3,7 @@ import re
 import os
 import stat
 import itertools
+import subprocess
 import multiprocessing as mp
 
 # Local Modules
@@ -117,14 +118,36 @@ def fetch_new_mirrorlist():
 # Package And Cache Utils
 ##########################
 
+def find_cache_paths(config):
+    '''
+    Fetch a list of every normal users configured homepath
+    '''
+    paths = list()
+    for line in paf.read_file('/etc/pacman.conf'):
+        if line.startswith('CacheDir'):
+            paths.append(line.split('=')[-1].strip())
+
+    if not paths:
+        paths.append('/var/cache/pacman/pkg')
+
+    for u in paf.list_normal_users():
+        if os.path.exists(u[5] + '/.cache'):
+            paths.append(u[5] + '/.cache')
+
+    paths.append(config['basepath'])
+
+    return paths
+
+
 def pacman_Q():
     '''
-    Writes the output into /tmp, reads file, then removes file.
+    Captures the output of `pacman -Q`
     '''
-    os.system("pacman -Q > /tmp/pacman_q")
-    pkg_list = paf.read_file('/tmp/pacman_q', typ='set')
-    paf.rm_file('/tmp/pacman_q', sudo=False)
-    return pkg_list
+    raw = subprocess.Popen('pacman -Q', stdout=subprocess.PIPE, shell=True)
+    out = str(raw.communicate())[3:]
+    out = out.split('\n')
+    out = set(out[0].split('\\n')[:-1])
+    return out
 
 
 def scan_caches(config):
@@ -137,44 +160,41 @@ def scan_caches(config):
     paf.write_to_log(fname, 'Started Scaning Directories for Packages...', config['log'])
 
     # Searches Known Package Cache Locations
-    fs_paths = {config['basepath'], '/var/cache/pacman/pkg'}
-    for u in os.listdir('/home'):
-        fs_paths.add('/home/' + u + '/.cache')
-    pkg_paths = find_pkgs_in_dir(fs_paths)
-    unique_pkgs = paf.basenames(pkg_paths)
+    pkg_paths = find_pkgs_in_dir(find_cache_paths(config))
+    unique_pkgs = list(paf.basenames(pkg_paths))
     paf.write_to_log(fname, 'Searched ALL Package Cache Locations', config['log'])
 
     # Branch If Filter Is Needed
     if len(pkg_paths) != len(unique_pkgs):
         # Find Unique Packages By Inode Number
         inodes = set()
-        filter_fs = set()
+        inode_filter = set()
 
         for x in pkg_paths:
             i = os.lstat(x)[stat.ST_INO]
             if i in inodes:
                 pass
             else:
-                filter_fs.add(x)
+                inode_filter.add(x)
                 inodes.add(i)
 
-        #################################
-        # THIS SHOULD BASICALLY NEVER RUN
-        #################################
-        if len(filter_fs) != len(unique_pkgs):
-            paf.write_to_log(fname, 'File System is Messed Up and The User Has Somehow Duplicated Files!', config['log'])
+        if len(inode_filter) != len(unique_pkgs):
+            # THIS SHOULD BASICALLY NEVER RUN
+            paf.write_to_log(fname, 'File System None-Inoded Duplicated Files!', config['log'])
             paf.write_to_log(fname, 'Attempting to Filter Packages With Regex...', config['log'])
             thread_cap = 4
 
             # This Chunks the List of unique_pkgs Into Peices
             chunk_size = int(round(len(unique_pkgs) / paf.max_threads(thread_cap), 0)) + 1
-            unique_pkgs = list(f for f in unique_pkgs)
             chunks = [unique_pkgs[i:i + chunk_size] for i in range(0, len(unique_pkgs), chunk_size)]
 
             # Creates Pool of Threads to Filter Based on File Name
             with mp.Pool(processes=paf.max_threads(thread_cap)) as pool:
-                filter_fs = pool.starmap(first_pkg_path, zip(chunks, itertools.repeat(pkg_paths)))
+                filter_fs = pool.starmap(first_pkg_path, zip(chunks, itertools.repeat(inode_filter)))
                 filter_fs = set(itertools.chain(*filter_fs))
+
+        else:
+            filter_fs = inode_filter
 
         paf.write_to_log(fname, 'Returned ' + str(len(filter_fs)) + ' Unique Cache Packages', config['log'])
         return filter_fs
@@ -194,11 +214,11 @@ def search_cache(pkg_list, fs_list, config):
     fname = 'utils.search_cache(' + str(len(pkg_list)) + ')'
     thread_cap = 4
 
-    # Combing package names into one term provides much faster results
+    # Combing Package Names Into One Term Provides Much Faster Results
     paf.write_to_log(fname, 'Started Search for Matching Versions...', config['log'])
     bulk_search = ('|'.join(list(re.escape(pkg) for pkg in pkg_list)))
 
-    # Chunks list of searches into peices for multi-threaded search
+    # Chunks List of Searches Into Peices For Multi-Threaded Search
     chunk_size = int(round(len(fs_list) / paf.max_threads(thread_cap), 0)) + 1
     fs_list = list(f for f in fs_list)
     chunks = [fs_list[i:i + chunk_size] for i in range(0, len(fs_list), chunk_size)]
@@ -269,10 +289,11 @@ def reboot_check(config):
     '''
     fname = 'utils.reboot_check()'
 
-    os.system("file -bL /boot/vmlinuz* | grep -o 'version [^ ]*' | cut -d ' ' -f 2 > /tmp/reboot_check")
-    os.system("uname -r >> /tmp/reboot_check")
-    raw = paf.read_file('/tmp/reboot_check', 'list')
-    paf.rm_file('/tmp/reboot_check', sudo=False)
+    cmd = "file -bL /boot/vmlinuz* | grep -o 'version [^ ]*' | cut -d ' ' -f 2 && uname -r"
+    raw = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    out = str(raw.communicate())[3:]
+    out = out.split('\n')
+    out = out[0].split('\\n')[:-1]
 
     if raw[0].strip() != raw[1].strip():
         paf.write_to_log(fname, 'The Installed Kernel Has Changed From ' + raw[1].strip() + ' To ' + raw[0].strip(), config['log'])
@@ -303,16 +324,19 @@ def cache_size(config):
     fname = 'utils.cache_size()'
     paf.write_to_log(fname, 'Started Calculating Cache Size...', config['log'])
 
-    # Wish I Didn't Have to Copy This Code Over
-    fs_paths = {config['basepath'], '/var/cache/pacman/pkg'}
-    for u in os.listdir('/home'):
-        fs_paths.add('/home/' + u + '/.cache')
-    all_paths = find_pkgs_in_dir(fs_paths)
-    unique_paths = scan_caches(config)
+    caches = find_cache_paths(config)
+    pacman_cache = find_pkgs_in_dir(caches[0])
+    user_cache = find_pkgs_in_dir(caches[1:])
+    pacback_cache = find_pkgs_in_dir(caches[-1:])
+    pacback_filter = pacback_cache.difference({*pacman_cache, *user_cache})
+    all_cache = {*pacman_cache, *user_cache, *pacback_cache}
+    pkg_total = len(pacman_cache) + len(user_cache) + len(pacback_filter)
 
     # Calculate Size On Disk
-    reported_size = paf.convert_size(paf.size_of_files(all_paths))
-    actual_size = paf.convert_size(paf.size_of_files(unique_paths))
+    pacman_size = paf.convert_size(paf.size_of_files(pacman_cache))
+    user_size = paf.convert_size(paf.size_of_files(user_cache))
+    pacback_size = paf.convert_size(paf.size_of_files(pacback_filter))
+    reported_size = paf.convert_size(paf.size_of_files(all_cache))
     paf.write_to_log(fname, 'Returning Cache Size', config['log'])
 
-    return (reported_size, actual_size)
+    return (str(pkg_total), pacman_size, user_size, pacback_size, reported_size)
