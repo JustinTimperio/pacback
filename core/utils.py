@@ -295,9 +295,9 @@ def reboot_check(config):
     out = out.split('\n')
     out = out[0].split('\\n')[:-1]
 
-    if raw[0].strip() != raw[1].strip():
-        paf.write_to_log(fname, 'The Installed Kernel Has Changed From ' + raw[1].strip() + ' To ' + raw[0].strip(), config['log'])
-        paf.prWarning('Your Installed Kernel Has Changed From ' + raw[1].strip() + ' To ' + raw[0].strip() + ' and a Reboot Is Needed!')
+    if out[0].strip() != out[1].strip():
+        paf.write_to_log(fname, 'The Installed Kernel Has Changed From ' + out[1].strip() + ' To ' + out[0].strip(), config['log'])
+        paf.prWarning('Your Installed Kernel Has Changed From ' + out[1].strip() + ' To ' + out[0].strip() + ' and a Reboot Is Needed!')
 
         if config['reboot'] is True:
             if paf.yn_frame('Do You Want To Schedule A Reboot In ' + str(config['reboot_offset']) + ' Minutes?') is True:

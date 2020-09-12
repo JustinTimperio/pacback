@@ -34,7 +34,6 @@ def lock(config):
         sys.exit('Critical Error! Pacback Already Has An Active Session Running.')
 
 
-
 def unlock(config):
     '''
     Removes the session lock defined by config['slock'].

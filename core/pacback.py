@@ -147,7 +147,7 @@ if args.create_rp or args.hook or args.package or args.snapshot or args.restore_
 
     if args.cache_size:
         cache = utils.cache_size(config)
-        print('Unique Packages: ' + cache[0])
+        print('Unique Package Versions: ' + cache[0])
         print('Pacman Cache Size: ' + cache[1])
         print('User(s) Cache Size: ' + cache[2])
         print('Pacback Cache Size: ' + cache[3])
