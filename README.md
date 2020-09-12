@@ -56,7 +56,7 @@ Pacback offers several core commands that streamline the process of creating and
 
 ### Utilities
 * -cache, --cache_size | Calculate reported and actual cache sizes.\
-*Example: `pacback -cl`*
+*Example: `pacback -cache`*
 * -cl, --clean | Clean old and orphaned pacakages along with old restore points.\
 *Example: `pacback -cl`*
 * -rm, --remove | Removes the selected restore point.\
