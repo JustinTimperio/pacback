@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 import os
 import sys
+import fcntl
 import datetime as dt
 
 # Local Modules
@@ -20,13 +21,15 @@ def lock(config):
     if paf.am_i_root() is False:
         sys.exit('Critical Error: This Command Must Be Run As Root!')
 
-    if os.path.exists(config['slock']):
-        sys.exit('Critical Error! Pacback Already Has An Active Session Running.')
+    try:
+        lock = os.open(config['slock'], os.O_CREAT)
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        paf.start_log(fname, config['log'])
+        paf.write_to_log(fname, 'Passed Root Check', config['log'])
+        paf.write_to_log(fname, 'Started Active Session', config['log'])
 
-    paf.start_log(fname, config['log'])
-    paf.write_to_log(fname, 'Passed Root Check', config['log'])
-    os.system('touch ' + config['slock'])
-    paf.write_to_log(fname, 'Started Active Session', config['log'])
+    except (IOError, OSError):
+        sys.exit('Critical Error! Pacback Already Has An Active Session Running.')
 
 
 def unlock(config):
@@ -35,7 +38,6 @@ def unlock(config):
     This releases the lock that was created by session.lock()
     '''
     fname = 'session.unlock()'
-    paf.rm_file(config['slock'], sudo=False)
     paf.write_to_log(fname, 'Ended Active Session', config['log'])
     paf.end_log(fname, config['log'], config['log_length'])
 
@@ -111,7 +113,7 @@ def hlock_check(config):
             paf.write_to_log(fname, 'Passed Cooldown Check', config['log'])
         else:
             abort(fname, 'A Hook Lock Was Created ' + str(sec_dif) + ' Ago!',
-                    'Aborting: The Last Snapshot Was Created Less Than ' + str(config['hook_cooldown']) + ' Seconds Ago!', config)
+                    'Aborting: A Snapshot Was Created Less Than ' + str(config['hook_cooldown']) + ' Seconds Ago!', config)
     else:
         paf.write_to_log(fname, 'Passed Check, No Previous Lock Found', config['log'])
 
@@ -127,11 +129,11 @@ def load_config():
     mandatory = ['hook_cooldown', 'max_ss', 'reboot']
     optional = ['old_rp', 'keep_versions', 'reboot_offset', 'log_length', 'basepath', 'rp_paths', 'ss_paths']
     default = {
-        'version': '2.0.1',
-        'paf': '4f25050',
+        'version': '2.0.2',
+        'paf': '412fd69',
         'log': '/var/log/pacback.log',
-        'slock': '/tmp/pacback_session.lck',
-        'hlock': '/tmp/pacback_hook.lck',
+        'slock': '/var/lib/pacback/pacback_session.lck',
+        'hlock': '/var/lib/pacback/pacback_hook.lck',
         'basepath': '/var/lib/pacback',
         'rp_paths': '/var/lib/pacback/restore-points',
         'ss_paths': '/var/lib/pacback/snapshots',
@@ -173,5 +175,5 @@ def setup(config):
         paf.mk_dir(config['ss_paths'], sudo=False)
         paf.write_to_log(fname, 'Created Snapshot Folder at ' + config['ss_paths'], config['log'])
 
-    if os.path.exists('/etc/pacback/config') is False:
+    if os.path.exists('/etc/pacback.conf') is False:
         paf.write_to_log(fname, 'User Config File Is Missing!', config['log'])

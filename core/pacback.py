@@ -65,7 +65,7 @@ parser.add_argument("-df", "--diff", nargs=2, metavar=('1 2'),
 parser.add_argument("-ls", "--list", action='store_true',
                     help="List information about all existing restore points and snapshots.")
 parser.add_argument("-cache", "--cache_size", action='store_true',
-                    help="Calculate a timeline of changes between snapshots.")
+                    help="Calculate reported and actual cache sizes.")
 
 args = parser.parse_args()
 config = session.load_config()

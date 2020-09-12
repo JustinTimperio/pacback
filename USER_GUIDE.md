@@ -3,6 +3,7 @@
 **Table of Contents:**
 - [Get Snapshot and Restore Point Info](https://github.com/JustinTimperio/pacback/blob/master/USER_GUIDE.md#getting-snapshot-and-restore-point-info)
 - [Using Rolling System Snapshots](https://github.com/JustinTimperio/pacback/blob/master/USER_GUIDE.md#rolling-system-snapshots)
+- [Creating Permanent Restore Points](https://github.com/JustinTimperio/pacback/blob/master/USER_GUIDE.md#creating-permanent-restore-points)
 - [Rollback a List of Packages](https://github.com/JustinTimperio/pacback/blob/master/USER_GUIDE.md#rollback-a-list-of-packages)
 - [Rolling Back to an Archive Date](https://github.com/JustinTimperio/pacback/blob/master/USER_GUIDE.md#rolling-back-to-an-archive-date)
 - [Backup Version Sensitive Application Data](https://github.com/JustinTimperio/pacback/blob/master/USER_GUIDE.md#backup-version-sensitive-application-data)
@@ -30,6 +31,17 @@ One of the problems with rolling releases is you never know when a problem might
 4. To undo all the changes you just made simply `pacback -ss 0`.
 
 ![Pacback Snapshot](https://i.imgur.com/GE61yqe.gif)
+
+## Creating Permanent Restore Points
+
+Remember that one time all your packages were working perfectly? (God that was great.) Have a production system running perfectly that needs to be updated but you don't want to backup the whole disk? With pacback restore points, you don't have to lose that version state. Restore points are user-defined version states that describe a set of packages and even configuration files on your system that you don't want to lose track of. Unlike many backup utilities pacback doesn't need backup the whole disk. Instead, it hardlinks packages with inodes without duplicating the files so that pacback can maintain the smallest possible profile on your system.
+
+To create a restore point, then get information about it:
+
+1. `pacback -nc -f -c 1 -l 'Production'`
+2. `pacback -i rp1`
+
+![Restore Points](https://i.imgur.com/5f5d5HI.gif)
 
 
 ## Rollback a List of Packages 
