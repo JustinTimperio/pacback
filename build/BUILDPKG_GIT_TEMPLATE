@@ -42,6 +42,4 @@ package() {
   cp -dr --no-preserve='ownership' pacback/build/config "${pkgdir}"/etc/pacback.conf
   cp -dr --no-preserve='ownership' pacback/build/alpha-upgrade.sh "${pkgdir}"/tmp
   ln -sf /usr/share/pacback/core/pacback.py "${pkgdir}"/usr/bin/pacback
-  mkdir -p /var/lib/pacback/restore-points
-  mkdir -p /var/lib/pacback/snapshots
 }
