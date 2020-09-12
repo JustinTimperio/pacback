@@ -27,9 +27,12 @@ def lock(config):
         paf.start_log(fname, config['log'])
         paf.write_to_log(fname, 'Passed Root Check', config['log'])
         paf.write_to_log(fname, 'Started Active Session', config['log'])
+        if os.path.exists('/etc/pacback.conf') is False:
+            paf.write_to_log(fname, 'User Config File Is Missing!', config['log'])
 
     except (IOError, OSError):
         sys.exit('Critical Error! Pacback Already Has An Active Session Running.')
+
 
 
 def unlock(config):
@@ -151,29 +154,3 @@ def load_config():
         default.update(user_config)
 
     return default
-
-
-##################
-# Setup Pacback
-################
-
-def setup(config):
-    '''
-    Check if all the need folders and files are present for a active session
-    '''
-    fname = 'session.setup()'
-    # Init Base Paths if First Run
-    if os.path.exists(config['basepath']) is False:
-        paf.mk_dir(config['basepath'], sudo=False)
-        paf.write_to_log(fname, 'Created Basepath Folder at ' + config['basepath'], config['log'])
-
-    if os.path.exists(config['rp_paths']) is False:
-        paf.mk_dir(config['rp_paths'], sudo=False)
-        paf.write_to_log(fname, 'Created Restore Point Folder at ' + config['rp_paths'], config['log'])
-
-    if os.path.exists(config['ss_paths']) is False:
-        paf.mk_dir(config['ss_paths'], sudo=False)
-        paf.write_to_log(fname, 'Created Snapshot Folder at ' + config['ss_paths'], config['log'])
-
-    if os.path.exists('/etc/pacback.conf') is False:
-        paf.write_to_log(fname, 'User Config File Is Missing!', config['log'])

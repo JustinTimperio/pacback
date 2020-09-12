@@ -4,17 +4,6 @@
 post_install() {
     # Installs Snapshot Hook
     pacback -ih
-    
-    # Create Directories
-    if [ ! -d '/var/lib/pacback']; then
-      mkdir '/var/lib/pacback'
-    fi
-    if [ ! -d '/var/lib/pacback/snapshots']; then
-      mkdir '/var/lib/pacback/snapshots'
-    fi
-    if [ ! -d '/var/lib/pacback/restore-points']; then
-      mkdir '/var/lib/pacback/restore-points'
-    fi
 }
 
 post_upgrade() {

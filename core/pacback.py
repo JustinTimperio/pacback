@@ -98,7 +98,6 @@ if args.create_rp or args.hook or args.package or args.snapshot or args.restore_
 
     # Safely Init the Environment
     session.lock(config)
-    session.setup(config)
     signal.signal(signal.SIGINT, partial(session.sig_catcher, config))
 
     ######################

@@ -29,4 +29,6 @@ package() {
   cp -dr --no-preserve='ownership' LICENSE "${pkgdir}"/usr/share/licences/pacback
   cp -dr --no-preserve='ownership' config "${pkgdir}"/etc/pacback.conf
   ln -sf /usr/share/pacback/core/pacback.py "${pkgdir}"/usr/bin/pacback
+  mkdir -p /var/lib/pacback/restore-points
+  mkdir -p /var/lib/pacback/snapshots
 }
