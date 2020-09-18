@@ -54,10 +54,9 @@ def main(config, info):
         # Make Folders and Hardlink Packages
         paf.mk_dir(info['path'], sudo=False)
         paf.mk_dir(info['pkgcache'], sudo=False)
-        # This Is Much Faster Than A For Loop
-        cmds = {'ln ' + paf.escape_bash_input(pkg) + ' ' + info['pkgcache']
-                + '/' + paf.basename(pkg) for pkg in found_pkgs}
-        os.system(' & '.join(cmds))
+
+        for pkg in found_pkgs:
+            os.link(pkg, info['pkgcache'] + '/' + paf.basename(pkg))
         paf.write_to_log(fname, 'HardLinked ' + str(len(found_pkgs)) + ' Packages', config['log'])
 
         # Search Custom Dir's

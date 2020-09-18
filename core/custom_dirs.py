@@ -6,6 +6,7 @@
 
 import re
 import os
+import shutil
 import pickle
 import tarfile
 from rich.progress import track
@@ -34,7 +35,7 @@ def make_missing_dirs(config, unpack_path, p_len):
 
     for d in dirs:
         if not os.path.exists(d[p_len:]):
-            os.system('mkdir ' + paf.escape_bash_input(d[p_len:]))
+            os.makedirs(d[p_len:])
 
     if os.path.exists(unpack_path + '/folder_permissions.pickle'):
         # Load Folder Permissions Pickle
@@ -64,7 +65,7 @@ def repack(config, info, unpack_path):
         # Re-Compress Custom Tar
         print('Re-Compressing Tar...')
         if any(re.findall('pigz', l.lower()) for l in utils.pacman_Q()):
-            os.system('pigz ' + info['tar'] + ' -f')
+            os.system('/usr/bin/pigz ' + info['tar'] + ' -f')
         else:
             paf.gz_c(info['tar'], rm=True)
         paf.write_to_log(fname, 'Compressed ' + info['tar'], config['log'])
@@ -98,13 +99,13 @@ def compare_files(config, dir_list, unpack_path, p_len):
     diff_added.update(current_files - {f[p_len:] for f in unpack_files})
     current_files.difference_update(diff_added)
 
-    # Find Removed Fil(es and Trim From Csum Queue
+    # Find Removed Files and Trim From Csum Queue
     diff_removed.update(unpack_files - {unpack_path + f for f in current_files})
     unpack_files.difference_update(diff_removed)
     try:
         diff_removed.remove(unpack_path + '/folder_permissions.pickle')
-    except Exception:
-        pass
+    except KeyError:
+        paf.write_to_log(fname, 'Error: Couldn\'t Find Permission Pickle.', config['log'])
 
     # Only Checksum Files That Exist in Both Current AND Unpack
     paf.write_to_log(fname, 'Started Checksumming Custom Files...', config['log'])
@@ -173,7 +174,7 @@ def force_overwrite(config, unpack_path, p_len):
         pass
     make_missing_dirs(config, unpack_path, p_len)
     for f in track(fs_stored, description='Overwriting Files'):
-        os.system('cp -af ' + paf.escape_bash_input(f) + ' ' + paf.escape_bash_input(f[p_len:]))
+        shutil.os(f, f[p_len:])
 
     paf.prSuccess('Done Overwriting Files!')
     paf.write_to_log(fname, 'Finished Force Overwrite Of Files', config['log'])
@@ -202,7 +203,7 @@ def smart_overwrite(config, csum_results, unpack_path, p_len):
 
         if paf.yn_frame('Do You Want to Restore ' + str(len(csum_results['changed'])) + ' Files That Have Been CHANGED?') is True:
             for f in track(csum_results['changed'], description='Restoring Changed Files'):
-                os.system('sudo cp -af ' + paf.escape_bash_input(unpack_path + f[0]) + ' ' + paf.escape_bash_input(f[0]))
+                shutil.move(unpack_path + f[0], f[0])
             paf.write_to_log(fname, 'Restored Changed Files', config['log'])
         else:
             paf.write_to_log(fname, 'User Declined Restoring Changed Files', config['log'])
@@ -221,7 +222,7 @@ def smart_overwrite(config, csum_results, unpack_path, p_len):
         if paf.yn_frame('Do You Want to Restore ' + str(len(csum_results['removed'])) + ' Files That Have Been REMOVED?') is True:
             make_missing_dirs(config, unpack_path, p_len)
             for f in track(csum_results['removed'], description='Restoring Removed Files'):
-                os.system('cp -af ' + paf.escape_bash_input(f) + ' ' + paf.escape_bash_input(f[p_len:]))
+                os.shutil(f, f[p_len:])
             paf.write_to_log(fname, 'Restored Removed Files', config['log'])
         else:
             paf.write_to_log(fname, 'User Declined Restoring Removed Files', config['log'])
@@ -239,7 +240,7 @@ def smart_overwrite(config, csum_results, unpack_path, p_len):
 
         if paf.yn_frame('Do You Want to Remove ' + str(len(csum_results['added'])) + ' Files That Have Been ADDED?') is True:
             for f in track(csum_results['added'], description='Removing New Files'):
-                os.system('rm ' + f)
+                os.remove(f)
             paf.write_to_log(fname, 'Removed New Files', config['log'])
         else:
             paf.write_to_log(fname, 'User Declined Removing New Files', config['log'])
@@ -266,7 +267,7 @@ def restore(config, info, dir_list, checksum):
     if os.path.exists(info['tar.gz']):
         paf.prWarning('Decompressing Custom Tar....')
         if any(re.findall('pigz', line.lower()) for line in utils.pacman_Q()):
-            os.system('pigz -d ' + info['tar.gz'] + ' -f')
+            os.system('/usr/bin/pigz -d ' + info['tar.gz'] + ' -f')
             paf.write_to_log(fname, 'Decompressed Tar With Pigz', config['log'])
         else:
             paf.gz_d(info['tar.gz'])
