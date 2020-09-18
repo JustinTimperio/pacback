@@ -1,5 +1,9 @@
 # Pacback
-
+![AUR Main](https://img.shields.io/aur/version/pacback?label=AUR%20Stable&style=for-the-badge)
+![AUR Git](https://img.shields.io/aur/version/pacback-git?label=AUR%20git&style=for-the-badge)
+![Codacy grade](https://img.shields.io/codacy/grade/e7e837f43d794a919070a608642390f4?style=for-the-badge)
+![GitHub](https://img.shields.io/github/license/justintimperio/pacback?style=for-the-badge)
+ 
  **Index:**
 
 1.  [CLI Commands](https://github.com/JustinTimperio/pacback#pacback-cli-commands-and-flags)
@@ -27,50 +31,50 @@ Pacback offers several core commands that streamline the process of creating and
 
 ### Core Commands
 
--   \-c, --create_rp | Generate a pacback restore point. Takes a restore point # as an argument.\\
+-   \-c, --create_rp | Generate a pacback restore point. Takes a restore point # as an argument.\
     _Example: `pacback -c 1`_
--   \-rp, --restore_point | Rollback to a previously generated restore point.\\
+-   \-rp, --restore_point | Rollback to a previously generated restore point.\
     _Example: `pacback -rp 1`_
--   \-ss, --snapshot | Restore the system to an automatically created snapshot.\\
+-   \-ss, --snapshot | Restore the system to an automatically created snapshot.\
     _Example: `pacback -ss 2`_
--   \-dt, --date | Rollback to a date in the Arch Linux Archive.\\
+-   \-dt, --date | Rollback to a date in the Arch Linux Archive.\
     _Example: `pacback -dt 2019/08/14`_
--   \-pkg, --package | - Rollback a list of packages looking for old versions on the system.\\
+-   \-pkg, --package | - Rollback a list of packages looking for old versions on the system.\
     _Example: `pacback -pkg zsh cpupower neovim`_
 
 ### Flags
 
--   \-f, --full_rp | Generate a pacback full restore point.\\
+-   \-f, --full_rp | Generate a pacback full restore point.\
     _Example: `pacback -f -c 1`_
--   \-d, --add_dir | Add any custom directories to your restore point during a `--create_rp AND --full_rp`.\\
+-   \-d, --add_dir | Add any custom directories to your restore point during a `--create_rp AND --full_rp`.\
     _Example: `pacback -f -c 1 -d /dir1/to/add /dir2/to/add /dir3/to/add`_
--   \-nc, --no_confirm | Skip asking user questions during RP creation. Will answer yes to most input.\\
+-   \-nc, --no_confirm | Skip asking user questions during RP creation. Will answer yes to most input.\
     _Example: `pacback -nc -c 1`_
--   \-l, --label | Add a label to your restore point.\\
+-   \-l, --label | Add a label to your restore point.\
     _Example: `pacback -nc -c 1 -f -l 'Production'`_
 
 ### Print Info
 
--   \-ls, --list | List information about all restore points and snapshots.\\
+-   \-ls, --list | List information about all restore points and snapshots.\
     _Example: `pacback -ls`_
--   \-i, --info | Print information about a retore point or snapshot.\\
+-   \-i, --info | Print information about a retore point or snapshot.\
     _Example: `pacback -i rp1` or `pacback -i ss1`_
--   \-df, --diff | Compare any two restore points or snapshots.\\
+-   \-df, --diff | Compare any two restore points or snapshots.\
     _Example: `pacback -df rp1 rp2` or `pacback -df rp1 ss1`_
--   \-v, --version | Display pacback version and cache information.\\
+-   \-v, --version | Display pacback version and cache information.\
     _Example: `pacback -v`_
 
 ### Utilities
 
--   \-cache, --cache_size | Calculate reported and actual cache sizes.\\
+-   \-cache, --cache_size | Calculate reported and actual cache sizes.\
     _Example: `pacback -cache`_
--   \-cl, --clean | Clean old and orphaned pacakages along with old restore points.\\
+-   \-cl, --clean | Clean old and orphaned pacakages along with old restore points.\
     _Example: `pacback -cl`_
--   \-rm, --remove | Removes the selected restore point.\\
+-   \-rm, --remove | Removes the selected restore point.\
     _Example: `pacback -rm 12 -nc`_
--   \--install_hook | Install a pacman hook that creates a snapshot during each pacman transaction.\\
+-   \--install_hook | Install a pacman hook that creates a snapshot during each pacman transaction.\
     _Example: `pacback --install_hook`_
--   \--remove_hook | Removes the pacman hook that creates snapshots.\\
+-   \--remove_hook | Removes the pacman hook that creates snapshots.\
     _Example: `pacback --remove_hook`_
 
 ## Install Instructions:
