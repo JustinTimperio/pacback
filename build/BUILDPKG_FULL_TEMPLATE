@@ -25,7 +25,6 @@ package() {
   install -dm 755 "${pkgdir}"{/usr/{share/{pacback,pacback/paf,licences/pacback},bin/},/etc}
   install -dm 1777 "${pkgdir}"/tmp
   cp -dr --no-preserve='ownership' core "${pkgdir}"/usr/share/pacback
-  cp -dr --no-preserve='ownership' alpha-upgrade.sh "${pkgdir}"/tmp
   cp -dr --no-preserve='ownership' LICENSE "${pkgdir}"/usr/share/licences/pacback
   cp -dr --no-preserve='ownership' config "${pkgdir}"/etc/pacback.conf
   ln -sf /usr/share/pacback/core/pacback.py "${pkgdir}"/usr/bin/pacback

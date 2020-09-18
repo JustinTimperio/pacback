@@ -35,9 +35,6 @@ cd $repo_path
 cd build
 find . -maxdepth 1 -type f -name 'config' -exec tar -rvf $tar_path --owner=0 --group=0 {} +
 
-# Add Alpha Upgrade Script to Tar
-find . -maxdepth 1 -type f -name 'alpha-upgrade.sh' -exec tar -rvf $tar_path --owner=0 --group=0 {} +
-
 # Add License to Tar
 cd ..
 find . -maxdepth 1 -type f -name 'LICENSE' -exec tar -rvf $tar_path --owner=0 --group=0 {} +

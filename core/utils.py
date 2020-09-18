@@ -248,8 +248,6 @@ def pacman_hook(install, config):
         fname = 'utils.pacman_hook(install)'
         paf.write_to_log(fname, 'Starting Hook Installation...', config['log'])
 
-        paf.mk_dir('/etc/pacman.d/hooks', sudo=False)
-        paf.sed_uncomment_line('HookDir', '/etc/pacman.conf', sudo=False)
         hook = [
                 '[Trigger]',
                 'Operation = Install',
@@ -265,7 +263,7 @@ def pacman_hook(install, config):
                 'Exec = /usr/bin/pacback --hook'
                 ]
 
-        paf.export_iterable('/etc/pacman.d/hooks/pacback.hook', hook)
+        paf.export_iterable('/usr/share/libalpm/hooks/pacback.hook', hook)
         paf.prSuccess('Pacback Hook is Now Installed!')
         paf.write_to_log(fname, 'Installed Pacback PreTransaction Hook', config['log'])
 
@@ -273,7 +271,7 @@ def pacman_hook(install, config):
         fname = 'utils.pacman_hook(remove)'
         paf.write_to_log(fname, 'Starting Hook Removal...', config['log'])
 
-        paf.rm_file('/etc/pacman.d/hooks/pacback.hook', sudo=False)
+        paf.rm_file('/usr/share/libalpm/hooks/pacback.hook', sudo=False)
         paf.write_to_log(fname, 'Removed Pacback PreTransaction Hook', config['log'])
         paf.prSuccess('Pacback Hook Was Removed!')
 

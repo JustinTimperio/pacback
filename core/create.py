@@ -39,9 +39,9 @@ def main(config, info):
             paf.write_to_log(fname, 'Not All Packages Where Found!', config['log'])
             pkg_split = utils.trim_pkg_list(found_pkgs)
             print('')
-            paf.prBold('=======================================')
-            paf.prWarning('The Following Packages Where NOT Found!')
-            paf.prBold('=======================================')
+            paf.prBold('======================================')
+            paf.prWarning('The Following Packages Were NOT Found!')
+            paf.prBold('======================================')
             for pkg in set(pkg_search - pkg_split):
                 paf.prWarning(pkg)
             print('')
