@@ -174,7 +174,7 @@ def force_overwrite(config, unpack_path, p_len):
         pass
     make_missing_dirs(config, unpack_path, p_len)
     for f in track(fs_stored, description='Overwriting Files'):
-        shutil.os(f, f[p_len:])
+        shutil.move(f, f[p_len:])
 
     paf.prSuccess('Done Overwriting Files!')
     paf.write_to_log(fname, 'Finished Force Overwrite Of Files', config['log'])
