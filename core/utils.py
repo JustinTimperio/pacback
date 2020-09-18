@@ -327,9 +327,10 @@ def cache_size(config):
     user_cache = find_pkgs_in_dir(caches[1:-1])
     pacback_cache = find_pkgs_in_dir(caches[-1:])
 
-    inodes = set()
+    inodes = {os.lstat(x)[stat.ST_INO] for x in {*pacman_cache, *user_cache}}
     pacback_filter = set()
-    for x in {*pacman_cache, *user_cache, *pacback_cache}:
+
+    for x in pacback_cache:
         i = os.lstat(x)[stat.ST_INO]
         if i in inodes:
             pass
