@@ -1,7 +1,7 @@
 # Pacback
 ![AUR Main](https://img.shields.io/aur/version/pacback?label=AUR%20Stable&style=for-the-badge)
 ![AUR Git](https://img.shields.io/aur/version/pacback-git?label=AUR%20git&style=for-the-badge)
-![Codacy grade](https://img.shields.io/codacy/grade/e7e837f43d794a919070a608642390f4?style=for-the-badge)
+![Codacy grade](https://img.shields.io/codacy/grade/e7e837f43d794a919070a608642390f4?label=Codacy%20Grade&style=for-the-badge)
 ![GitHub](https://img.shields.io/github/license/justintimperio/pacback?style=for-the-badge)
  
  **Index:**
