@@ -74,7 +74,7 @@ def main(config, parms, pkg_results):
 
 def snapshot(config, id_num):
     '''
-    This handles the process of restoring snapshots. This is pretty much the same as a 
+    This handles the process of restoring snapshots. This is pretty much the same as a
     standard restore point but requires post-processing after the restoration to maintain
     the order of changes made to the system.
     '''
@@ -253,7 +253,7 @@ def archive_date(config, date):
     paf.write_to_log(fname, 'Added ' + date + ' Archive URL To Mirrorlist', config['log'])
 
     # Run Pacman Update to Run Downgrade
-    os.system('pacman -Syyuu')
+    os.system('/usr/bin/pacman -Syyuu')
     paf.write_to_log(fname, 'Sent -Syyuu to Pacman', config['log'])
 
     # Restore the Non-Archive URL Mirrorlist
@@ -272,5 +272,5 @@ def archive_date(config, date):
         os.system('mv ' + mirror + '.pacback ' + mirror)
         paf.write_to_log(fname, 'Backup Mirrorlist Was Restored Successfully', config['log'])
         print('Refreshing Pacman Database...')
-        os.system('pacman -Syy > /dev/null')
+        os.system('/usr/bin/pacman -Sy > /dev/null')
         paf.write_to_log(fname, 'Updated Pacman Database After Restoring Mirrorlist', config['log'])

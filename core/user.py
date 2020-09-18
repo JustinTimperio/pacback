@@ -41,8 +41,7 @@ def remove_rp(config, num, nc):
 
 def list_all(config):
     '''
-    This presents all the currently created restore points
-    and snapshots.
+    This presents all the currently created restore points and snapshots.
     '''
     rps = sorted(m for m in paf.scan_dir(config['rp_paths'])[0] if m.endswith('.meta'))
     sss = sorted(m for m in paf.scan_dir(config['ss_paths'])[0] if m.endswith('.meta'))
@@ -119,11 +118,13 @@ def print_info(config, selction):
     compare = meta.compare_now(config, m)
 
     # Build Data For Table
-    c1 = ['Installed Packages: ' + m['pkgs_installed'],
-            'Date: ' + m['date'],
-            'Time: ' + m['time'],
-            'Pacback Version: ' + m['version'],
-            'User Label: ' + m['label']]
+    c1 = [
+        'Installed Packages: ' + m['pkgs_installed'],
+        'Date: ' + m['date'],
+        'Time: ' + m['time'],
+        'Pacback Version: ' + m['version'],
+        'User Label: ' + m['label']
+    ]
 
     if m['stype'] == 'Full':
         c1.append('Packages Cached: ' + m['pkgs_cached'])
@@ -226,11 +227,13 @@ def diff_meta(config, meta1, meta2):
     compare = meta.compare_meta(config, m1, m2)
 
     # Build Info For Table
-    c1 = ['Installed Packages: ' + m1['pkgs_installed'],
-            'Date: ' + m1['date'],
-            'Time: ' + m1['time'],
-            'Pacback Version: ' + m1['version'],
-            'User Label: ' + m1['label']]
+    c1 = [
+        'Installed Packages: ' + m1['pkgs_installed'],
+        'Date: ' + m1['date'],
+        'Time: ' + m1['time'],
+        'Pacback Version: ' + m1['version'],
+        'User Label: ' + m1['label']
+    ]
 
     if m1['stype'] == 'Full':
         c1.append('Packages Cached: ' + m1['pkgs_cached'])
@@ -337,15 +340,15 @@ def clean_cache(config, nc):
     print('')
 
     if nc is True or paf.yn_frame('Do You Want To Uninstall Orphaned Packages?') is True:
-        os.system('pacman -R $(pacman -Qtdq)')
+        os.system('/usr/bin/pacman -R $(/usr/bin/pacman -Qtdq)')
         paf.write_to_log(fname, 'Removed Orphaned Packages', config['log'])
 
     if nc is True or paf.yn_frame('Do You Want To Remove Old Versions of Installed Packages?') is True:
-        os.system('paccache -rk ' + str(config['keep_versions']))
+        os.system('/usr/bin/paccache -rk ' + str(config['keep_versions']))
         paf.write_to_log(fname, 'Removed Old Package Versions', config['log'])
 
     if nc is True or paf.yn_frame('Do You Want To Remove Cached Orphans?') is True:
-        os.system('paccache -ruk0')
+        os.system('/usr/bin/paccache -ruk0')
         paf.write_to_log(fname, 'Removed Cached Orphans', config['log'])
 
     if nc is True or paf.yn_frame('Do You Want To Check For Old Pacback Restore Points?') is True:

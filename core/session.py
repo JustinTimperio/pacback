@@ -14,8 +14,8 @@ import paf
 
 def lock(config):
     '''
-    This checks if pacback is being run by root or sudo, then
-    checks if an active session is already in progress.
+    This checks if pacback is being run by root or sudo.
+    Then checks if an active session is already in progress.
     '''
     fname = 'session.lock()'
     if paf.am_i_root() is False:

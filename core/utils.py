@@ -15,9 +15,7 @@ import paf
 ############################
 
 def remove_id(config, info):
-    '''
-    Remove a selected id based on type.
-    '''
+    '''Remove a selected id based on type.'''
     fname = "utils.remove_id(" + info['type'] + info['id'] + ")"
 
     paf.rm_file(info['meta'], sudo=False)
@@ -143,7 +141,7 @@ def pacman_Q():
     '''
     Captures the output of `pacman -Q`
     '''
-    raw = subprocess.Popen('pacman -Q', stdout=subprocess.PIPE, shell=True)
+    raw = subprocess.Popen('/usr/bin/pacman -Q', stdout=subprocess.PIPE, shell=True)
     out = str(raw.communicate())[3:]
     out = out.split('\n')
     out = set(out[0].split('\\n')[:-1])
