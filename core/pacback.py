@@ -23,7 +23,7 @@ parser = argparse.ArgumentParser(description="A package rollback utility for Arc
 parser.add_argument("-c", "--create_rp", metavar=('1'),
                     help="Generate a pacback restore point.")
 parser.add_argument("--hook", action='store_true',
-                    help="Used exxlusively by the pacback hook to create snapshots.")
+                    help="Used exlusively by the pacback hook to create snapshots.")
 
 # Restoration
 parser.add_argument("-rp", "--restore_point", metavar=('1'),

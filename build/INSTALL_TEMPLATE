@@ -13,7 +13,7 @@ post_install() {
 
 post_upgrade() {
     ## Patch pacman Hook Location
-    if [ -f '/etc/pacman.d/hooks/pacback.hook' ]; then
+    if [ -f "/etc/pacman.d/hooks/pacback.hook" ]; then
       mv /etc/pacman.d/hooks/pacback.hook /usr/share/libalpm/hooks/pacback.hook
     fi
 
