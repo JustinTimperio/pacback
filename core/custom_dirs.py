@@ -9,6 +9,7 @@ import os
 import shutil
 import pickle
 import tarfile
+import tempfile
 from rich.progress import track
 
 # Local Modules
@@ -327,21 +328,22 @@ def store(config, info):
     '''
     fname = 'custom_dirs.pack()'
     paf.write_to_log(fname, str(len(info['dir_list'])) + ' Folders Selected For Storage', config['log'])
+    tmpfile = tempfile.gettempdir() + '/folder_permissions.pickle'
 
     # Fetch Folder Permissions and Pickle
     folder_perms = set()
     for d in info['dir_list']:
         folder_perms.update(paf.get_permissions(d, 'folders'))
-    pickle.dump(folder_perms, (open('/tmp/folder_permissions.pickle', 'wb')))
+    pickle.dump(folder_perms, (open(tmpfile, 'wb')))
     # Scan For Files
     files = paf.find_files(info['dir_list'])
 
     # Pack Custom Files Into Tar
     with tarfile.open(info['tar'], 'w') as tar:
-        tar.add('/tmp/folder_permissions.pickle', arcname='folder_permissions.pickle')
+        tar.add(tmpfile, arcname='folder_permissions.pickle')
         for f in track(files, description='Adding Files to Tar'):
             tar.add(f)
-    paf.rm_file('/tmp/folder_permissions.pickle', sudo=False)
+    paf.rm_file(tmpfile, sudo=False)
 
     paf.write_to_log(fname, 'Created ' + info['tar'], config['log'])
 
@@ -353,7 +355,7 @@ def store(config, info):
     # Compresses Custom Tar
     print('Compressing Custom Tar...')
     if any(re.findall('pigz', l.lower()) for l in utils.pacman_Q()):
-        os.system('pigz ' + info['tar'] + ' -f')
+        os.system('/usr/bin/pigz ' + info['tar'] + ' -f')
     else:
         paf.gz_c(info['tar'], rm=True)
     paf.write_to_log(fname, 'Compressed ' + info['tar'], config['log'])
