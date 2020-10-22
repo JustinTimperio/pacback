@@ -132,7 +132,7 @@ def load_config():
     mandatory = ['hook_cooldown', 'max_ss', 'reboot']
     optional = ['old_rp', 'keep_versions', 'reboot_offset', 'log_length', 'basepath', 'rp_paths', 'ss_paths']
     default = {
-        'version': '2.0.3',
+        'version': '2.1.0',
         'paf': '412fd69',
         'log': '/var/log/pacback.log',
         'slock': '/var/lib/pacback/pacback_session.lck',
