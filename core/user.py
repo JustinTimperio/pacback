@@ -95,10 +95,10 @@ def list_all(config):
 
 def print_info(config, selction):
     '''
-    This function processes a meta data file without validating it.
-    It will compare the file to now and present the results in a table.
+    This function processes a meta data file without validating it,
+    then compares the file to now and presents the results in a table.
     This acts as a 'dry run' of sorts not only showing info in the meta data
-    file but also showing what would be changed.
+    file but also showing what would be changed if actually restored.
     The code is kind of gross but I'm not inclined to fix it.
     '''
     # Build Base Vars

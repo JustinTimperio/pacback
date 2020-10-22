@@ -15,10 +15,10 @@ import custom_dirs
 
 def main(config, info):
     '''
-    This is pacbacks main method for orchestrating the creating of a
+    This is pacbacks main method for orchestrating the creation of a
     fallback point. It shouldn't be called directly with create.main()
-    but with a 'higher' level call the builds the info and stages the
-    system for the actual creation process.
+    but rather by a 'higher' level call that stages system for the
+    actual creation process.
     '''
     fname = 'create.main(' + info['type'] + info['id'] + ')'
     paf.write_to_log(fname, 'Building ID:' + info['id'] + ' As ' + info['STYPE'] + ' ' + info['TYPE'], config['log'])
@@ -113,8 +113,8 @@ def main(config, info):
 
 def snapshot(config, label):
     '''
-    Assembles all the info and stages the file system needed for the creation
-    of a new snapshot with id:00. This is only called by `pacback --hook`.
+    Assembles all the info for main() and stages the file system for the creation
+    of a new snapshot with id='00'. This is only called by `--hook`.
     '''
     num = '00'
     fname = 'create.snapshot(' + num + ')'
@@ -193,8 +193,9 @@ def snapshot(config, label):
 
 def restore_point(config, num, full_rp, dir_list, no_confirm, label):
     '''
-    Assembles all the info and stages the file system needed for the creation
-    of a restore point. It is assumed that user info is cleansed.
+    Assembles all the info for main() and stages the file system
+    for the creation of a restore point. It is assumed that user input
+    has been cleansed by this point.
     '''
     num = str(num).zfill(2)
     fname = 'create.restore_point(' + num + ')'

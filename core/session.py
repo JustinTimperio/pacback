@@ -14,8 +14,8 @@ import paf
 
 def lock(config):
     '''
-    This checks if pacback is being run by root or sudo.
-    Then checks if an active session is already in progress.
+    This checks if pacback is being run by root or sudo,
+    then checks if an active session is already in progress.
     '''
     fname = 'session.lock()'
     if paf.am_i_root() is False:
@@ -36,8 +36,8 @@ def lock(config):
 
 def unlock(config):
     '''
-    Removes the session lock defined by config['slock'].
-    This releases the lock that was created by session.lock()
+    Removes the session lock file defined by config['slock'].
+    This will release the lock that was created calling session.lock()
     '''
     fname = 'session.unlock()'
     paf.write_to_log(fname, 'Ended Active Session', config['log'])
@@ -47,7 +47,7 @@ def unlock(config):
 def abort_fail(func, output, message, config):
     '''
     This is a surrogate function for other functions to safely abort runtime during a failure.
-    It reports the func sending the kill signal as the origin, rather than session.abort().
+    It reports the func sending the kill request as the origin, rather than session.abort().
     '''
     paf.write_to_log(func, 'FAILURE: ' + output, config['log'])
     unlock(config)
@@ -57,18 +57,19 @@ def abort_fail(func, output, message, config):
 
 def abort(func, output, message, config):
     '''
-    This is a surrogate function for other functions to safely abort runtime.
+    This is a surrogate function for other functions to safely abort runtime WITHOUT reporting
+    as an internal error. This is useful for non-critical issues that still require a runtime exit.
     It reports the func sending the kill signal as the origin, rather than session.abort().
     '''
     paf.write_to_log(func, 'ABORT: ' + output, config['log'])
     unlock(config)
     paf.prBold(message)
-    sys.exit()
+    sys.exit(0)
 
 
 def sig_catcher(log, signum, frame):
     '''
-    This is called whenever a exit signal is received.
+    This is called whenever a exit signal is received(AKA: KeyboardInterupt).
     It lets pacback exit somewhat safely during the event of a kill.
     '''
     abort_fail('SIGINT', 'Caught SIGINT ' + str(signum), '\nAttempting Clean Exit', log)
@@ -81,7 +82,7 @@ def sig_catcher(log, signum, frame):
 def hlock_start(config):
     '''
     This starts a hook lock overwriting the previous lock.
-    This should be triggered at the end of a successful --hook run.
+    This should be triggered at the end of a successful `--hook` run.
     '''
     fname = 'session.hlock_start(' + str(config['hook_cooldown']) + ')'
     stime = 'Created: ' + dt.datetime.now().strftime("%Y:%m:%d:%H:%M:%S"),

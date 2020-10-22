@@ -139,7 +139,7 @@ def find_cache_paths(config):
 
 def pacman_Q():
     '''
-    Captures the output of `pacman -Q`
+    Captures the output of `pacman -Q` from stdout
     '''
     raw = subprocess.Popen('/usr/bin/pacman -Q', stdout=subprocess.PIPE, shell=True)
     out = str(raw.communicate())[3:]
@@ -204,9 +204,9 @@ def scan_caches(config):
 
 def search_cache(pkg_list, fs_list, config):
     '''
-    Searches the cache for matching pkg versions and returns results.
-    Because of the way files are named, and the output given by pacman -Q
-    regex is needed to find the version reported to the package path.
+    Searches the cache for matching pkg versions and returns the results.
+    Because of the way files are named and the output given by pacman -Q,
+    regex is needed to find the version in the cached package path.
     No performance is gained with more than 4 threads on this function.
     '''
     fname = 'utils.search_cache(' + str(len(pkg_list)) + ')'
@@ -236,8 +236,8 @@ def search_cache(pkg_list, fs_list, config):
 
 def pacman_hook(install, config):
     '''
-    Installs or removes a standard alpm hook in /etc/pacman.d/hooks
-    This runs as a PreTransaction hook during every transaction.
+    Installs or removes a standard alpm hook in /usr/share/libalpm/hooks/
+    which runs as a PreTransaction hook during every pacman transaction.
     `install = True` Installs Pacman Hook
     `install = False` Removes Pacman Hook
     '''
@@ -280,8 +280,8 @@ def pacman_hook(install, config):
 
 def reboot_check(config):
     '''
-    Checks running and installed kernel versions to determine if
-    a reboot is needed.
+    Checks the running and installed kernel versions 
+    to determine if a reboot is needed.
     '''
     fname = 'utils.reboot_check()'
 

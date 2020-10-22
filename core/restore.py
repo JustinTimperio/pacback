@@ -17,7 +17,8 @@ import custom_dirs
 
 def main(config, parms, pkg_results):
     '''
-    This is the main restore logic for pacback. It should NOT be called directly as restore.main().
+    This is the main restore logic for pacback. It should NOT be called directly but
+    instead called through a higher level 'API' like call.
     This logic does the actual work of downgrading, removing, and installing packages.
     '''
     fname = 'restore.main(' + parms['type'] + parms['id'] + ')'
@@ -190,8 +191,8 @@ def restore_point(config, id_num):
 def packages(config, pkgs):
     '''
     Allows the user to rollback packages by name.
-    Packages are not sent to pacman until the user has select all
-    the packages they want to restore/change.
+    Packages are not sent to pacman until the user has 
+    selected all the packages they want to restore/change.
     '''
     # Startup
     fname = 'restore.packages(' + str(len(pkgs)) + ')'

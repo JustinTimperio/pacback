@@ -58,7 +58,7 @@ def read(config, meta_path):
 
 def compare(config, old_pkgs, new_pkgs):
     '''
-    Compares two list of packages and returns a dictionary containing
+    Compares two lists of packages and returns a dictionary containing
     changed, added, and removed packages. Also returns a formated list
     for searching with utils.search_cache().
     '''
