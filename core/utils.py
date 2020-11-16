@@ -68,7 +68,7 @@ def search_pkg_chunk(search, fs_list):
     '''
     pkgs = list()
     for f in fs_list:
-        if re.findall(search, f.lower()):
+        if re.search(search, f.lower()):
             pkgs.append(f)
     return pkgs
 
@@ -176,6 +176,8 @@ def scan_caches(config):
                 inode_filter.add(x)
                 inodes.add(i)
 
+        paf.write_to_log(fname, 'Found ' + str(len(inode_filter)) + ' Package Inode\'s!', config['log'])
+
         if len(inode_filter) != len(unique_pkgs):
             # THIS SHOULD BASICALLY NEVER RUN
             paf.write_to_log(fname, 'File System Contains None-Hardlinked Duplicate Packages!', config['log'])
@@ -280,7 +282,7 @@ def pacman_hook(install, config):
 
 def reboot_check(config):
     '''
-    Checks the running and installed kernel versions 
+    Checks the running and installed kernel versions
     to determine if a reboot is needed.
     '''
     fname = 'utils.reboot_check()'
@@ -293,7 +295,7 @@ def reboot_check(config):
 
     if out[0].strip() != out[1].strip():
         paf.write_to_log(fname, 'The Installed Kernel Has Changed From ' + out[1].strip() + ' To ' + out[0].strip(), config['log'])
-        paf.prWarning('Your Installed Kernel Has Changed From ' + out[1].strip() + ' To ' + out[0].strip() + ' and a Reboot Is Needed!')
+        paf.prWarning('Your Installed Kernel Has Changed From ' + out[1].strip() + ' To ' + out[0].strip())
 
         if config['reboot'] is True:
             if paf.yn_frame('Do You Want To Schedule A Reboot In ' + str(config['reboot_offset']) + ' Minutes?') is True:

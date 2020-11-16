@@ -5,6 +5,7 @@ import os
 # Local Modules
 import paf
 import meta
+import error
 import utils
 import session
 import version
@@ -28,8 +29,22 @@ def main(config, parms, pkg_results):
         cache = utils.scan_caches(config)
         found_pkgs = utils.search_cache(pkg_results['search'], cache, config)
 
+        # This is Very Bad
+        if len(found_pkgs) > len(pkg_results['search']):
+            paf.prError('Error: Somehow More Packages Were Found Than Were Searched For!')
+            paf.write_to_log(fname, 'Error: Somehow More Packages Were Found Than Were Searched For!', config['log'])
+            print('Starting Error Resolving Process...')
+            error_handler_results = error.too_many_pkgs_found(config, parms, found_pkgs, pkg_results)
+
+            if error_handler_results[0] is True:
+                paf.prSuccess('Pacback Was Able To Automaticly Resolve This Error!')
+                found_pkgs = error_handler_results[1]
+            else:
+                paf.prError('Pacback Was NOT Able To Automaticly Resolve This Error!')
+                error.create_error_report()
+
         # Branch if Packages are Missing
-        if len(found_pkgs) != len(pkg_results['search']):
+        elif len(found_pkgs) < len(pkg_results['search']):
             missing_pkg = set(pkg_results['search'] - utils.trim_pkg_list(found_pkgs))
             paf.write_to_log(fname, str(len(found_pkgs)) + ' Out of ' + str(len(pkg_results['search'])) + ' Packages Found', config['log'])
 
@@ -39,10 +54,12 @@ def main(config, parms, pkg_results):
             if paf.yn_frame('Do You Want To Continue Anyway?') is False:
                 session.abort_fail(fname, 'User Aborted Rollback Because of Missing Packages', 'Aborting Rollback!', config)
 
+        # This is the Best Case
         else:
             paf.prSuccess('All Packages Found In Your Local File System!')
             paf.write_to_log(fname, 'Found All Changed and Removed Packages', config['log'])
 
+        print(str(len(found_pkgs)))
         paf.pacman(' '.join(found_pkgs), '-U')
         paf.write_to_log(fname, 'Sent Pacman Selected Packages', config['log'])
 
@@ -191,7 +208,7 @@ def restore_point(config, id_num):
 def packages(config, pkgs):
     '''
     Allows the user to rollback packages by name.
-    Packages are not sent to pacman until the user has 
+    Packages are not sent to pacman until the user has
     selected all the packages they want to restore/change.
     '''
     # Startup
